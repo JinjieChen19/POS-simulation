@@ -1,0 +1,625 @@
+---
+title: "Predictive Probability of Success (PoS)"
+subtitle: "Virtual ICB case study: Using PFS to predict OS (log(HR), p<0.05)"
+author: "Internal Methodology Share"
+date: "2026-01-07"
+
+format:
+  beamer:
+    aspectratio: 169
+    fontsize: 10pt
+    incremental: false
+    include-in-header: |
+      % Make code/output blocks smaller and allow line-wrapping in PDF slides
+      \usepackage{fvextra}
+      \DefineVerbatimEnvironment{Highlighting}{Verbatim}{breaklines,breakanywhere,commandchars=\\\{\}}
+      \AtBeginEnvironment{Shaded}{\footnotesize}
+      \setlength{\emergencystretch}{3em}
+  revealjs:
+    theme: simple
+    slide-number: true
+    incremental: false
+    center: false
+    width: 1280
+    height: 720
+    html-math-method: mathjax
+
+execute:
+  echo: false
+  warning: false
+  message: false
+  cache: false
+---
+## Background: why PoS (not only power)
+
+In drug development, a Go/No-Go decision often depends on the chance that a *future* confirmatory analysis will meet a pre-specified success criterion.
+
+Classical power assumes the true treatment effect is fixed and known (or set to a design alternative). In practice, the true effect is uncertain and should be updated by accumulating evidence (historical trials, interim data, surrogate endpoints).
+
+**Predictive Probability of Success (PoS)** answers:
+
+> “Given what we know *today*, what is the probability the future study will be declared successful?”
+
+---
+
+## Core objects and notation
+
+Let $Y^*$ denote the test statistic or effect estimate from the *future* (or not-yet-mature) analysis, and let $R$ be the **success region** defined by the protocol.
+
+Examples of $R$:
+- Frequentist: $p < 0.05$ (two-sided) and effect in the favorable direction  
+- Bayesian: $\Pr(\theta < 0 \mid \text{data}) > 0.95$  
+- Clinical: lower CI bound exceeds a clinically meaningful threshold
+
+Let $\theta$ denote the **true treatment effect** (e.g., log hazard ratio).
+
+---
+
+## PoS definition: integral over uncertainty in the true effect
+
+The building block is the conditional success probability:
+
+$$
+\Pr(Y^* \in R \mid \theta).
+$$
+
+Because $\theta$ is unknown, PoS averages the conditional success probability over the current posterior:
+
+$$
+\text{PoS}
+= \int \Pr(Y^* \in R \mid \theta)\, p(\theta \mid Y_o)\, d\theta,
+$$
+
+where $Y_o$ denotes all evidence observed up to now (e.g., historical trials, interim information).
+
+---
+
+## Equivalent view: posterior predictive distribution
+
+An equivalent expression uses the posterior predictive distribution of the future result:
+
+$$
+p(y^* \mid Y_o)
+= \int p(y^* \mid \theta)\, p(\theta \mid Y_o)\, d\theta.
+$$
+
+Then PoS is simply:
+
+$$
+\text{PoS} = \Pr(Y^* \in R \mid Y_o)
+= \int \mathbf{1}(y^* \in R)\, p(y^* \mid Y_o)\, dy^*.
+$$
+
+This view is often convenient for computation and interpretation.
+
+---
+
+## Success rule for log(HR) with two-sided $p<0.05$
+
+Assume the future OS analysis estimates the log hazard ratio:
+
+$$
+Y^* \mid \theta \sim N(\theta, \sigma_*^2),
+$$
+
+and we target benefit with $HR < 1$ (i.e., $\theta < 0$).
+
+For a two-sided test at $\alpha = 0.05$, the success region can be written as:
+
+$$
+R = \{\, Y^* < c \,\}, \quad c = -z_{1-\alpha/2}\, \sigma_* = -1.96\,\sigma_*.
+$$
+
+Therefore:
+
+$$
+\text{PoS} = \Pr(Y^* < c \mid Y_o).
+$$
+
+---
+
+## Linking the ICB surrogate scenario to PoS
+
+In the ICB setting, PFS typically matures earlier than OS.
+
+We use historical trials reporting both endpoints to learn the joint relationship:
+
+$$
+(\theta_{OS}, \theta_{PFS})^\top \sim \mathrm{MVN}(\mu,\Sigma_{\text{between}}),
+$$
+
+and then update OS using the observed current-trial PFS result $y_c$.
+
+This yields a predictive distribution for the final OS estimate:
+
+$$
+Y^*_{OS} \mid y_c \sim N\!\left(m_{\text{post}},\, v_{\text{post}} + \sigma_*^2\right),
+$$
+
+and PoS follows from the OS success rule:
+
+$$
+\text{PoS} = \Pr(Y^*_{OS} < -1.96\,\sigma_* \mid y_c).
+$$
+
+
+## What we’re trying to answer
+
+**Scenario (ICB trial):**
+
+- Primary endpoint: **PFS** (read out earlier)
+- Key secondary endpoint: **OS** (matures later)
+- Effect measure: **log(HR)** for both endpoints
+
+**Decision question:**
+
+> Given the current trial’s observed PFS result, what is the probability that the final OS analysis will be statistically significant (two-sided p < 0.05) in the beneficial direction?
+
+::: notes
+This is the core “PoS” story: translate earlier evidence (PFS) into an actionable probability about OS success, while carrying uncertainty.
+:::
+
+---
+
+## PoS in one line
+
+Let:
+
+- $\theta$ = the (unknown) *true* treatment effect (here: $\theta = \log(HR)$)
+- $Y^*$ = the future study’s estimator (e.g., estimated log(HR) at final OS analysis)
+- $R$ = the **success region** (defined by your decision rule)
+
+Then predictive probability of success is:
+
+$$
+\text{PoS} \,=\, \int \Pr\big(Y^*\in R\mid \theta\big)\;\pi(\theta\mid \text{current evidence})\, d\theta
+$$
+
+**Interpretation:** average the conditional “power” over uncertainty in the true effect.
+
+---
+
+## Our success rule (log(HR), two-sided p < 0.05)
+
+For OS final analysis, assume:
+
+$$
+Y^*_{OS} \mid \theta^*_{OS} \sim \mathcal N(\theta^*_{OS},\; se_{*}^2)
+$$
+
+Two-sided $\alpha=0.05$, beneficial direction $HR<1$ (so $\log(HR)<0$):
+
+$$
+R = \{Y^*_{OS} < c\},\quad c = -z_{0.975}\, se_{*} \approx -1.96\, se_{*}
+$$
+
+So:
+
+$$
+\text{PoS} = \Pr\left(Y^*_{OS} < c\mid \text{current evidence}\right)
+$$
+
+::: notes
+This is just the usual z-test rejection region, written on the log(HR) scale.
+:::
+
+---
+
+## Where “current evidence” comes from
+
+We will combine two sources:
+
+1) **Historical trials** (e.g., 27 ICB studies) that report both endpoints
+   - $y_{i,OS}=\log(HR_{OS,i})$, $se_{i,OS}$
+   - $y_{i,PFS}=\log(HR_{PFS,i})$, $se_{i,PFS}$
+
+2) **Current trial’s PFS** (available now)
+   - $y_c = \log(HR_{PFS})$, $se_c$
+
+Goal: obtain $\theta^*_{OS}\mid y_c$ (predictive distribution for the current trial’s *true* OS effect), then compute PoS.
+
+---
+
+## Model (concept picture)
+
+Two layers:
+
+- **Between-study layer (true effects differ across trials):**
+
+$$
+(\theta_{i,OS},\theta_{i,PFS})^\top \sim \text{MVN}(\mu,\,\Sigma_{between})
+$$
+
+- **Within-study layer (estimation error):**
+
+$$
+(y_{i,OS},y_{i,PFS})^\top \sim \text{MVN}((\theta_{i,OS},\theta_{i,PFS})^\top,\,\Sigma_{within,i})
+$$
+
+Key parameters:
+
+- $\mu_{OS},\mu_{PFS}$: average (logHR) effects across trials
+- $\tau_{OS},\tau_{PFS}$: between-study SDs (heterogeneity)
+- $\rho$: correlation between true OS and true PFS effects
+
+::: notes
+The whole approach rests on “exchangeability”: the historical trials and the current trial are assumed to come from the same super-population (up to heterogeneity).
+:::
+
+---
+
+## Conditioning: OS effect given observed PFS
+
+Treat the current trial’s true effects $(\theta^*_{OS},\theta^*_{PFS})$ as a draw from the same between-study distribution.
+
+Observation model for current PFS:
+
+$$
+y_c = \theta^*_{PFS} + e,\quad e\sim \mathcal N(0,se_c^2)
+$$
+
+If $(\theta^*_{OS},\theta^*_{PFS})\sim \text{MVN}(\mu,\Sigma_{between})$, then:
+
+$$
+\theta^*_{OS}\mid y_c \sim \mathcal N(m_{post}, v_{post})
+$$
+
+where
+
+$$
+m_{post} = \mu_{OS} + \frac{\text{Cov}(OS,PFS)}{\text{Var}(PFS)+se_c^2}\,(y_c-\mu_{PFS})
+$$
+$$
+v_{post} = \text{Var}(OS) - \frac{\text{Cov}(OS,PFS)^2}{\text{Var}(PFS)+se_c^2}
+$$
+
+---
+
+## PoS in closed form
+
+Final OS estimator:
+
+$$
+Y^*_{OS}\mid y_c \sim \mathcal N\big(m_{post},\; v_{post}+se_{*}^2\big)
+$$
+
+Therefore:
+
+$$
+\text{PoS} = \Pr(Y^*_{OS}<c\mid y_c)
+= \Phi\!\left(\frac{c-m_{post}}{\sqrt{v_{post}+se_{*}^2}}\right)
+$$
+
+**Knobs that matter:**
+
+- $\rho$: stronger PFS–OS association → PFS updates OS more
+- $\tau$’s: more heterogeneity → less certainty → PoS often down
+- $d_{events}$: more OS events → smaller $se_{*}$ → PoS up
+
+---
+
+## Reproducible demo: simulate 27 historical ICB trials
+
+We’ll create a virtual dataset with:
+
+- K = 27 historical trials
+- True bivariate relationship between log(HR_OS) and log(HR_PFS)
+- Realistic ranges of standard errors
+
+```{r}
+#| label: setup
+#| include: false
+
+set.seed(20260106)
+
+# Wrap console output to avoid going off-slide in PDF
+options(width = 70)
+
+make_pd <- function(S, eps = 1e-6) {
+  dn <- dimnames(S)
+  e <- eigen(S, symmetric = TRUE)
+  vals <- pmax(e$values, eps)
+  S_pd <- e$vectors %*% diag(vals) %*% t(e$vectors)
+  dimnames(S_pd) <- dn
+  S_pd
+}
+
+library(MASS)
+
+K <- 27
+
+# "True" hyper-parameters for the virtual historical world
+mu_true <- c(OS = -0.20, PFS = -0.30)        # mean log(HR)
+tau_true <- c(OS = 0.15, PFS = 0.12)         # between-study SDs
+rho_true <- 0.75
+
+Sigma_between_true <- matrix(
+  c(tau_true["OS"]^2,
+    rho_true*tau_true["OS"]*tau_true["PFS"],
+    rho_true*tau_true["OS"]*tau_true["PFS"],
+    tau_true["PFS"]^2),
+  nrow = 2, byrow = TRUE,
+  dimnames = list(c("OS","PFS"), c("OS","PFS"))
+)
+
+# Standard errors per trial/endpoints (roughly realistic)
+se_os  <- runif(K, 0.10, 0.18)
+se_pfs <- runif(K, 0.08, 0.15)
+
+# Within-study correlation between (y_OS, y_PFS) often unknown; set 0 for base demo
+r_within <- 0
+Sigma_within_list <- lapply(1:K, function(i) {
+  matrix(c(se_os[i]^2, r_within*se_os[i]*se_pfs[i],
+           r_within*se_os[i]*se_pfs[i], se_pfs[i]^2),
+         nrow = 2, byrow = TRUE)
+})
+
+# Simulate true effects and observed estimates
+theta <- mvrnorm(n = K, mu = mu_true, Sigma = Sigma_between_true)
+colnames(theta) <- c("OS","PFS")
+
+y <- matrix(NA_real_, nrow = K, ncol = 2, dimnames = list(NULL, c("OS","PFS")))
+for (i in 1:K) {
+  e_i <- mvrnorm(n = 1, mu = c(0,0), Sigma = Sigma_within_list[[i]])
+  y[i,] <- theta[i,] + e_i
+}
+
+hist_dat <- data.frame(
+  trial = 1:K,
+  y_os = y[,"OS"],  se_os = se_os,
+  y_pfs = y[,"PFS"], se_pfs = se_pfs
+)
+
+head(hist_dat, 5)
+```
+
+---
+
+## Estimate the between-study relationship (demo-friendly moment approach)
+
+For a quick internal demo, we’ll use **error-corrected moments**:
+
+- observed sample covariance: $S_{obs}=\text{Cov}(y)$
+- average within-study covariance: $\bar W$
+- estimate: $\hat\Sigma_{between} \approx S_{obs}-\bar W$
+
+```{r}
+#| label: estimate_between
+
+S_obs <- cov(y)
+W_bar <- Reduce("+", Sigma_within_list) / K
+
+Sigma_between_hat <- make_pd(S_obs - W_bar)
+mu_hat <- colMeans(y)
+
+tau_hat <- sqrt(diag(Sigma_between_hat))
+rho_hat <- Sigma_between_hat["OS","PFS"] / (tau_hat[1]*tau_hat[2])
+
+list(
+  mu_hat = mu_hat,
+  Sigma_between_hat = Sigma_between_hat,
+  tau_hat = tau_hat,
+  rho_hat = rho_hat
+)
+```
+
+::: notes
+For production work you’d typically fit a full bivariate random-effects model (REML or Bayesian). This moment approach is intentionally simple for a clean demo.
+:::
+
+---
+
+## Current trial: plug in observed PFS and compute PoS
+
+Assume the current trial has interim/final PFS result:
+
+- $y_c = \log(HR_{PFS})$
+- $se_c$ (its standard error)
+
+For OS final analysis, assume planned OS event count $d$.
+Under 1:1 allocation, Schoenfeld gives a useful approximation:
+
+$$
+se_{*} \approx \frac{2}{\sqrt{d}}
+$$
+
+```{r}
+#| label: pos_calc
+
+# Current PFS (modify to explore scenarios)
+y_c  <- -0.35   # log(HR_PFS)  ~ HR 0.70
+se_c <-  0.09
+
+# Planned OS final analysis events
+# d_events = number of OS events (e.g., deaths) at the final analysis
+# For 1:1 allocation, se* ≈ 2/sqrt(d)
+d_events <- 240
+se_star <- 2 / sqrt(d_events)
+
+# Success threshold for two-sided alpha=0.05 and beneficial direction
+c_thr <- -qnorm(0.975) * se_star
+
+# Conditional distribution theta*_OS | y_c
+var_pfs <- Sigma_between_hat["PFS","PFS"]
+var_os  <- Sigma_between_hat["OS","OS"]
+cov_op  <- Sigma_between_hat["OS","PFS"]
+
+m_post <- mu_hat["OS"] + cov_op/(var_pfs + se_c^2) * (y_c - mu_hat["PFS"])
+v_post <- var_os - cov_op^2/(var_pfs + se_c^2)
+
+sd_pred <- sqrt(v_post + se_star^2)
+PoS <- pnorm(c_thr, mean = m_post, sd = sd_pred)
+
+c(
+  y_c = y_c,
+  HR_PFS = exp(y_c),
+  m_post_OS = m_post,
+  HR_OS_pred_mean = exp(m_post),
+  sd_thetaOS = sqrt(v_post),
+  d_events = d_events,
+  se_star = se_star,
+  threshold_c = c_thr,
+  PoS = PoS
+)
+```
+
+---
+
+## Visual 1: historical relationship (virtual 27 trials)
+
+```{r}
+#| label: plot_scatter
+#| fig-height: 4.6
+#| fig-width: 8.5
+
+plot(hist_dat$y_pfs, hist_dat$y_os,
+     xlab = "Historical log(HR_PFS)",
+     ylab = "Historical log(HR_OS)",
+     main = "Virtual 27 ICB trials: log(HR_PFS) vs log(HR_OS)",
+     pch = 16)
+
+abline(h = 0, v = 0, lty = 2)
+fit_lm <- lm(y_os ~ y_pfs, data = hist_dat)
+abline(fit_lm, lwd = 2)
+
+points(y_c, m_post, pch = 17, cex = 1.3)
+text(y_c, m_post, labels = "  current trial (PFS → OS mean)", pos = 4)
+
+legend("topright",
+       legend = c("Historical trials", "OLS line (visual only)", "Current trial (mapped mean)"),
+       pch = c(16, NA, 17), lty = c(NA, 1, NA), bty = "n")
+```
+
+---
+
+## Visual 2: PoS curve (how PFS maps to OS success probability)
+
+```{r}
+#| label: plot_pos_curve
+#| fig-height: 4.6
+#| fig-width: 8.5
+
+grid_yc <- seq(-0.70, 0.05, length.out = 220)
+PoS_grid <- sapply(grid_yc, function(yc) {
+  m <- mu_hat["OS"] + cov_op/(var_pfs + se_c^2) * (yc - mu_hat["PFS"])
+  v <- var_os - cov_op^2/(var_pfs + se_c^2)
+  sd <- sqrt(v + se_star^2)
+  pnorm(c_thr, mean = m, sd = sd)
+})
+
+plot(grid_yc, PoS_grid, type = "l",
+     xlab = "Current observed log(HR_PFS)  (y_c)",
+     ylab = "PoS for OS (two-sided p<0.05, HR<1)",
+     main = "PoS curve: PFS result → OS success probability")
+
+abline(v = y_c, lty = 2)
+points(y_c, PoS, pch = 16)
+text(y_c, PoS, labels = sprintf("  y_c=%.2f, PoS=%.2f", y_c, PoS), pos = 4)
+```
+
+::: notes
+This plot is what decision-makers usually want: a quantitative map from current PFS readout to probability of final OS success.
+:::
+
+---
+
+## Sensitivity demo: vary PFS–OS correlation ($\rho$)
+
+```{r}
+#| label: sens_rho
+#| fig-height: 4.6
+#| fig-width: 8.5
+
+rho_grid <- c(0.50, 0.75, 0.90)
+
+plot(NULL, xlim = range(grid_yc), ylim = c(0,1),
+     xlab = "Current observed log(HR_PFS)  (y_c)",
+     ylab = "PoS for OS",
+     main = "Sensitivity: PoS curve under different rho")
+
+for (rho_j in rho_grid) {
+  Sigma_j <- Sigma_between_hat
+  Sigma_j["OS","PFS"] <- rho_j * sqrt(Sigma_j["OS","OS"]*Sigma_j["PFS","PFS"])
+  Sigma_j["PFS","OS"] <- Sigma_j["OS","PFS"]
+  Sigma_j <- make_pd(Sigma_j)
+
+  var_pfs_j <- Sigma_j["PFS","PFS"]
+  var_os_j  <- Sigma_j["OS","OS"]
+  cov_op_j  <- Sigma_j["OS","PFS"]
+
+  PoS_j <- sapply(grid_yc, function(yc) {
+    m <- mu_hat["OS"] + cov_op_j/(var_pfs_j + se_c^2) * (yc - mu_hat["PFS"])
+    v <- var_os_j - cov_op_j^2/(var_pfs_j + se_c^2)
+    sd <- sqrt(v + se_star^2)
+    pnorm(c_thr, mean = m, sd = sd)
+  })
+  lines(grid_yc, PoS_j, lwd = 2)
+}
+
+abline(v = y_c, lty = 2)
+legend("topleft", legend = paste0("rho=", rho_grid), lwd = 2, bty = "n")
+```
+
+---
+
+## Sensitivity demo: OS information (event count) matters
+
+If your event count changes, so does $se_{*}$ and the success threshold $c$.
+
+```{r}
+#| label: sens_events
+
+event_grid <- c(150, 200, 240, 300, 400)
+res <- data.frame(d_events = event_grid, se_star = 2/sqrt(event_grid))
+res$threshold_c <- -qnorm(0.975) * res$se_star
+
+# Recompute PoS at the fixed current y_c for each event count
+res$PoS <- sapply(event_grid, function(d) {
+  se_s <- 2/sqrt(d)
+  c_s  <- -qnorm(0.975) * se_s
+  sd_p <- sqrt(v_post + se_s^2)
+  pnorm(c_s, mean = m_post, sd = sd_p)
+})
+
+res
+```
+
+---
+
+## Takeaways (what to emphasize internally)
+
+- PoS answers a **decision** question: *probability of meeting a success rule*, not “best guess HR”.
+- In this ICB setup:
+  - Historical trials estimate a **between-study** OS–PFS association ($\rho$, heterogeneity)
+  - Current PFS readout updates the predicted **true OS effect** via conditional normal formulas
+  - Final OS success probability is a **one-line Normal CDF**
+- Sensitivity analysis is not optional:
+  - $\rho$ (association strength), heterogeneity ($\tau$), and OS information (event count) are the big levers.
+
+---
+
+## Next steps (toward production)
+
+If this moves beyond a virtual demo:
+
+- Fit a full bivariate random-effects model (REML/Bayesian)
+- Treat within-study correlation $r$ as unknown → range or prior
+- Add design features that affect OS–PFS link (crossover, line of therapy, combo vs mono)
+- Use the same framework for interim decisions: re-run PoS as PFS/OS mature
+
+::: notes
+For an internal share, you can end with a clear checklist: what you need to collect from historical trials and what assumptions drive sensitivity.
+:::
+
+---
+
+## How to run this deck
+
+1) Save this file as `PoS_virtual_ICB_demo.qmd`
+2) In RStudio / VS Code terminal:
+
+```bash
+quarto render PoS_virtual_ICB_demo.qmd
+```
+
+It will produce an HTML slide deck (RevealJS) with all plots and numbers.
