@@ -1,0 +1,426 @@
+# ============================================================================
+# FULL BAYESIAN PoS FOR OS USING LOG(HR) - rstan IMPROVED
+# ============================================================================
+# Fixed convergence issues with non-centered parameterization
+# ============================================================================
+
+library(tidyverse)
+library(rstan)
+library(bayesplot)
+
+# Set rstan options for better performance
+options(mc.cores = parallel::detectCores())
+rstan_options(auto_write = TRUE)
+
+# ===========================================================================
+# 1. DATA PREPARATION
+# ===========================================================================
+
+prepare_historical_loghr_data <- function() {
+  set.seed(20260211)
+  
+  tibble(
+    trial_id = paste0("ICB-HIST-", sprintf("%02d", 1:10)),
+    cancer_type = rep(c("Melanoma", "NSCLC", "Renal", "HCC"), length.out = 10),
+    n_patients = c(150, 200, 120, 180, 95, 160, 140, 110, 130, 170),
+    loghr_pfs = c(-0.42, -0.38, -0.51, -0.40, -0.55, -0.47, -0.53, -0.35, -0.48, -0.44),
+    se_loghr_pfs = c(0.15, 0.13, 0.16, 0.14, 0.17, 0.15, 0.18, 0.14, 0.15, 0.13),
+    loghr_os = c(-0.28, -0.24, -0.35, -0.26, -0.38, -0.32, -0.36, -0.20, -0.31, -0.29),
+    se_loghr_os = c(0.18, 0.16, 0.20, 0.18, 0.21, 0.19, 0.22, 0.17, 0.19, 0.17),
+    corr_pfs_os = c(0.65, 0.70, 0.68, 0.72, 0.66, 0.71, 0.69, 0.73, 0.67, 0.70)
+  ) %>%
+    mutate(cov_pfs_os = corr_pfs_os * se_loghr_pfs * se_loghr_os)
+}
+
+prepare_current_trial_loghr_data <- function() {
+  list(
+    trial_name = "ICB-XYZ-2024",
+    cancer_type = "NSCLC",
+    n_enrolled = 400,
+    loghr_pfs_interim = -0.48,
+    se_loghr_pfs_interim = 0.12,
+    loghr_os_interim = -0.35,
+    se_loghr_os_interim = 0.25,
+    loghr_os_target = -0.30
+  )
+}
+
+# ===========================================================================
+# 2. IMPROVED STAN MODEL - Non-centered Parameterization
+# ===========================================================================
+
+build_stan_model_improved <- function() {
+  # Non-centered parameterization for better mixing
+  # Reduces divergent transitions and improves ESS
+  
+  stan_code <- "
+data {
+  int<lower=1> K;                           // Number of historical trials
+  vector[2] y_hist[K];                      // Observed log(HR) pairs
+  matrix[2, 2] W_hist[K];                   // Within-trial covariance
+  vector[2] y_curr;                         // Current trial data
+  matrix[2, 2] W_curr;                      // Current trial covariance
+  real loghr_os_target;                     // Target for success
+}
+
+parameters {
+  // Population means
+  real mu_os;
+  real mu_pfs;
+  
+  // Between-trial heterogeneity (with lower bounds for stability)
+  real<lower=0.001> tau_os;
+  real<lower=0.001> tau_pfs;
+  
+  // Correlation
+  real<lower=-0.95, upper=0.95> rho;
+  
+  // Non-centered parameterization for random effects
+  // Standard normal random effects instead of directly sampling theta
+  vector[2] z_hist[K];                      // Standardized random effects
+  vector[2] z_curr;                         // Standardized current trial effect
+}
+
+transformed parameters {
+  // Between-trial covariance matrix
+  matrix[2, 2] Sigma;
+  Sigma[1, 1] = tau_os^2;
+  Sigma[1, 2] = rho * tau_os * tau_pfs;
+  Sigma[2, 1] = rho * tau_os * tau_pfs;
+  Sigma[2, 2] = tau_pfs^2;
+  
+  // Cholesky decomposition (more numerically stable)
+  matrix[2, 2] L_Sigma = cholesky_decompose(Sigma);
+  
+  // Population mean
+  vector[2] mu = [mu_os, mu_pfs]';
+  
+  // Transform non-centered parameters to actual trial effects
+  // theta_i = mu + L_Sigma * z_i (instead of theta_i ~ N(mu, Sigma))
+  vector[2] theta_hist[K];
+  for (k in 1:K) {
+    theta_hist[k] = mu + L_Sigma * z_hist[k];
+  }
+  vector[2] theta_curr = mu + L_Sigma * z_curr;
+}
+
+model {
+  // ========== PRIORS ==========
+  
+  // Population means: weakly informative
+  mu_os ~ normal(-0.35, 1.0);
+  mu_pfs ~ normal(-0.45, 1.0);
+  
+  // Between-trial heterogeneity: exponential (more stable than normal)
+  tau_os ~ exponential(2);
+  tau_pfs ~ exponential(2);
+  
+  // Correlation: uniform
+  rho ~ uniform(-0.95, 0.95);
+  
+  // Non-centered parameters: standard normal
+  for (k in 1:K) {
+    z_hist[k] ~ std_normal();
+  }
+  z_curr ~ std_normal();
+  
+  // ========== LIKELIHOOD ==========
+  
+  // Historical trials
+  for (k in 1:K) {
+    y_hist[k] ~ multi_normal(theta_hist[k], W_hist[k]);
+  }
+  
+  // Current trial
+  y_curr ~ multi_normal(theta_curr, W_curr);
+}
+
+generated quantities {
+  // Posterior for current trial
+  real theta_os_post = theta_curr[1];
+  real theta_pfs_post = theta_curr[2];
+  
+  // HR scale
+  real hr_os_pred = exp(theta_curr[1]);
+  real hr_pfs_pred = exp(theta_curr[2]);
+  
+  // Probability of Success indicator
+  int pos_indicator = (theta_os_post < loghr_os_target) ? 1 : 0;
+}
+"
+
+return(stan_code)
+}
+
+# ===========================================================================
+# 3. PREPARE DATA
+# ===========================================================================
+
+prepare_stan_data <- function(historical_trials, current_trial) {
+  K <- nrow(historical_trials)
+  
+  y_hist <- list()
+  W_hist <- list()
+  
+  for (i in 1:K) {
+    y_hist[[i]] <- c(historical_trials$loghr_os[i], historical_trials$loghr_pfs[i])
+    
+    W_hist[[i]] <- matrix(c(
+      historical_trials$se_loghr_os[i]^2,
+      historical_trials$cov_pfs_os[i],
+      historical_trials$cov_pfs_os[i],
+      historical_trials$se_loghr_pfs[i]^2
+    ), nrow = 2, ncol = 2)
+  }
+  
+  y_curr <- c(current_trial$loghr_os_interim, current_trial$loghr_pfs_interim)
+  
+  corr_curr <- 0.60
+  cov_curr <- corr_curr * current_trial$se_loghr_os_interim * current_trial$se_loghr_pfs_interim
+  
+  W_curr <- matrix(c(
+    current_trial$se_loghr_os_interim^2,
+    cov_curr,
+    cov_curr,
+    current_trial$se_loghr_pfs_interim^2
+  ), nrow = 2, ncol = 2)
+  
+  list(
+    K = K,
+    y_hist = y_hist,
+    W_hist = W_hist,
+    y_curr = y_curr,
+    W_curr = W_curr,
+    loghr_os_target = current_trial$loghr_os_target
+  )
+}
+
+# ===========================================================================
+# 4. FIT MODEL WITH IMPROVED SETTINGS
+# ===========================================================================
+
+fit_bayesian_loghr_rstan <- function(historical_trials, current_trial,
+                                     n_iter = 4000, n_chains = 4,
+                                     seed = 2026, verbose = TRUE) {
+  
+  cat("\n", strrep("=", 90), "\n")
+  cat("FULL BAYESIAN PoS MODEL FOR OS USING LOG(HR)\n")
+  cat("rstan with Improved Non-Centered Parameterization\n")
+  cat(strrep("=", 90), "\n\n")
+  
+  stan_data <- prepare_stan_data(historical_trials, current_trial)
+  
+  cat("Compiling improved Stan model...\n")
+  stan_code <- build_stan_model_improved()
+  
+  cat("Sampling from posterior with improved settings...\n")
+  cat("  Total iterations per chain:", n_iter, "\n")
+  cat("  Warmup (burn-in):", n_iter/2, "\n")
+  cat("  Sampling:", n_iter/2, "\n")
+  cat("  Chains:", n_chains, "\n")
+  cat("  Adapt delta: 0.99 (strict, reduces divergences)\n\n")
+  
+  fit <- stan(
+    model_code = stan_code,
+    data = stan_data,
+    iter = n_iter,
+    warmup = n_iter / 2,
+    chains = n_chains,
+    cores = min(n_chains, parallel::detectCores()),
+    seed = seed,
+    verbose = verbose,
+    refresh = 500,
+    control = list(
+      adapt_delta = 0.99,         # Increase to reduce divergences
+      max_treedepth = 12
+    )
+  )
+  
+  cat("\n", strrep("=", 90), "\n\n")
+  
+  result <- list(
+    stan_fit = fit,
+    stan_data = stan_data,
+    historical_trials = historical_trials,
+    current_trial = current_trial
+  )
+  
+  class(result) <- "bayesian_loghr_rstan"
+  return(result)
+}
+
+# ===========================================================================
+# 5. EXTRACT AND SUMMARIZE RESULTS
+# ===========================================================================
+
+extract_results_rstan <- function(fit_object) {
+  
+  fit <- fit_object$stan_fit
+  current_trial <- fit_object$current_trial
+  
+  # Extract posterior samples
+  posterior_samples <- rstan::extract(fit)
+  
+  mu_os <- mean(posterior_samples$mu_os)
+  mu_pfs <- mean(posterior_samples$mu_pfs)
+  tau_os <- mean(posterior_samples$tau_os)
+  tau_pfs <- mean(posterior_samples$tau_pfs)
+  rho <- mean(posterior_samples$rho)
+  theta_os <- posterior_samples$theta_os_post
+  pos_prob <- mean(posterior_samples$pos_indicator)
+  
+  cat("\n", strrep("=", 90), "\n")
+  cat("POSTERIOR SUMMARY\n")
+  cat(strrep("=", 90), "\n\n")
+  
+  cat("POPULATION PARAMETERS:\n")
+  cat("  μ_OS (mean log HR for OS):      ", round(mu_os, 4), "\n")
+  cat("  μ_PFS (mean log HR for PFS):    ", round(mu_pfs, 4), "\n")
+  cat("  τ_OS (between-trial SD):        ", round(tau_os, 4), "\n")
+  cat("  τ_PFS (between-trial SD):       ", round(tau_pfs, 4), "\n")
+  cat("  ρ (OS-PFS correlation):         ", round(rho, 4), "\n\n")
+  
+  cat("CURRENT TRIAL POSTERIOR:\n")
+  cat("  E[θ_OS | data]:                 ", round(mean(theta_os), 4), "\n")
+  cat("  95% Credible Interval:          [", round(quantile(theta_os, 0.025), 4), ", ",
+      round(quantile(theta_os, 0.975), 4), "]\n")
+  cat("  Median (log HR):                ", round(median(theta_os), 4), "\n\n")
+  
+  cat("PROBABILITY OF SUCCESS:\n")
+  cat("  Target log(HR):                 ", round(current_trial$loghr_os_target, 4), "\n")
+  cat("  Equivalent HR:                  ", round(exp(current_trial$loghr_os_target), 3), "\n")
+  cat("  P(log(HR_OS) < target | data):  ", round(pos_prob, 4), "\n\n")
+  
+  if (pos_prob >= 0.90) {
+    cat("  PoS Assessment: ★★★ VERY HIGH - Trial very likely to succeed\n\n")
+  } else if (pos_prob >= 0.70) {
+    cat("  PoS Assessment: ★★ HIGH - Trial likely to succeed\n\n")
+  } else if (pos_prob >= 0.50) {
+    cat("  PoS Assessment: ★ MODERATE - Trial may succeed\n\n")
+  } else {
+    cat("  PoS Assessment: ✗ LOW - Trial unlikely to succeed\n\n")
+  }
+  
+  cat(strrep("=", 90), "\n\n")
+  
+  return(list(
+    mu_os = mu_os, mu_pfs = mu_pfs, tau_os = tau_os, tau_pfs = tau_pfs, rho = rho,
+    theta_os = theta_os, pos_probability = pos_prob,
+    fit = fit
+  ))
+}
+
+# ===========================================================================
+# 6. DIAGNOSTICS
+# ===========================================================================
+
+print_mcmc_diagnostics <- function(fit_object) {
+  
+  fit <- fit_object$stan_fit
+  
+  cat("\n", strrep("=", 90), "\n")
+  cat("MCMC DIAGNOSTICS\n")
+  cat(strrep("=", 90), "\n\n")
+  
+  # Print summary of key parameters
+  print(fit, probs = c(0.025, 0.5, 0.975), 
+        pars = c("mu_os", "mu_pfs", "tau_os", "tau_pfs", "rho", "theta_os_post"))
+  
+  cat("\n")
+}
+
+# ===========================================================================
+# 7. VISUALIZATION
+# ===========================================================================
+
+plot_rstan_results <- function(results) {
+  
+  # Extract samples
+  theta_os_samples <- results$theta_os
+  
+  p1 <- tibble(theta_os = theta_os_samples) %>%
+    ggplot(aes(x = theta_os)) +
+    geom_histogram(bins = 50, fill = "#4682B4", alpha = 0.7, aes(y = after_stat(density))) +
+    geom_density(color = "#00008B", size = 1) +
+    geom_vline(aes(xintercept = mean(theta_os)), color = "#00008B", linetype = "dashed", size = 1) +
+    labs(title = "Posterior: OS log(HR) - Current Trial",
+         x = "log(HR)", y = "Density") +
+    theme_minimal()
+  
+  p2 <- tibble(hr_os = exp(theta_os_samples)) %>%
+    ggplot(aes(x = hr_os)) +
+    geom_histogram(bins = 50, fill = "#3CB371", alpha = 0.7, aes(y = after_stat(density))) +
+    geom_density(color = "#228B22", size = 1) +
+    geom_vline(aes(xintercept = 1), color = "black", linetype = "dotted") +
+    labs(title = "Posterior Predictive: OS Hazard Ratio",
+         x = "HR", y = "Density") +
+    theme_minimal()
+  
+  p3 <- tibble(
+    scenario = c("PoS", "Null (50%)", "Good (70%)"),
+    prob = c(results$pos_probability, 0.50, 0.70)
+  ) %>%
+    ggplot(aes(x = reorder(scenario, -prob), y = prob, fill = scenario)) +
+    geom_col(alpha = 0.7) +
+    geom_text(aes(label = round(prob, 3)), vjust = -0.5, fontface = "bold") +
+    ylim(0, 1) +
+    labs(title = "Probability of Success", x = "", y = "Probability") +
+    theme_minimal() +
+    theme(legend.position = "none")
+  
+  p4 <- tibble(
+    parameter = c("μ_OS", "μ_PFS", "τ_OS", "τ_PFS", "ρ"),
+    value = c(results$mu_os, results$mu_pfs, results$tau_os, results$tau_pfs, results$rho)
+  ) %>%
+    ggplot(aes(x = reorder(parameter, value), y = value, fill = parameter)) +
+    geom_col(alpha = 0.7) +
+    geom_text(aes(label = round(value, 3)), vjust = -0.5) +
+    labs(title = "Population Parameters", x = "", y = "Estimate") +
+    theme_minimal() +
+    theme(legend.position = "none")
+  
+  combined <- gridExtra::grid.arrange(p1, p2, p3, p4, ncol = 2)
+  print(combined)
+  
+  return(invisible(combined))
+}
+
+# ===========================================================================
+# 8. MAIN EXECUTION
+# ===========================================================================
+
+# Prepare data
+historical_trials <- prepare_historical_loghr_data()
+current_trial <- prepare_current_trial_loghr_data()
+
+cat("HISTORICAL TRIALS (K = 10):\n")
+print(historical_trials %>% 
+        select(trial_id, loghr_os, se_loghr_os, loghr_pfs, se_loghr_pfs) %>%
+        mutate(across(starts_with("loghr"), ~round(., 3)), 
+               across(starts_with("se_"), ~round(., 3))))
+cat("\n")
+
+cat("CURRENT TRIAL:\n")
+cat("  Trial ID:", current_trial$trial_name, "\n")
+cat("  Interim PFS log(HR):", round(current_trial$loghr_pfs_interim, 4), "\n")
+cat("  Interim OS log(HR):", round(current_trial$loghr_os_interim, 4), "\n")
+cat("  Target log(HR):", round(current_trial$loghr_os_target, 4), "\n\n")
+
+# Fit model with improved settings
+fit_result <- fit_bayesian_loghr_rstan(
+  historical_trials, 
+  current_trial,
+  n_iter = 4000,      # More iterations
+  n_chains = 4,
+  seed = 2026
+)
+
+# Print MCMC diagnostics
+print_mcmc_diagnostics(fit_result)
+
+# Extract results
+results <- extract_results_rstan(fit_result)
+
+# Plot results
+cat("Generating posterior diagnostic plots...\n\n")
+plot_rstan_results(results)
