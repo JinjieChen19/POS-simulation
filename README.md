@@ -1,17 +1,19 @@
 # Bayesian Probability of Success (PoS) Simulation - R Shiny Application
 
-## ⚠️ CRITICAL PARAMETER FIX (2026-02-12 LATEST)
+## ⚠️ LATEST FIX: Prior on tau (2026-02-12 20:00)
 
-**Signal-to-Noise Ratio Fix Applied!**  
-- **Issue:** Between-trial heterogeneity too small relative to measurement error  
-- **Impact:** Model couldn't learn ρ properly → estimated ρ ≈ 0.14 instead of ≈ 0.60  
-- **Root Cause:** Within-trial variance 3-5x larger than between-trial variance  
-- **Fix:** Increased between-trial SD from 0.046/0.053 to 0.15/0.15  
-- **Result:** ρ now estimates correctly at ≈ 0.55-0.65 ✅  
+**Prior-Induced Shrinkage Fix Applied!**  
+- **Issue:** Default Exponential(2) prior on tau caused over-shrinkage → tau ≈ 0.04 instead of 0.15  
+- **Impact:** With tiny tau, model couldn't learn ρ → estimated ρ ≈ 0.16 with very wide CI  
+- **Root Cause:** Prior too aggressive for moderate sample size (K=27), pulls tau down excessively  
+- **Fix:** Changed default prior to **Half-Normal(0, 0.5)** (less aggressive shrinkage)  
+- **Expected Result:** tau ≈ 0.10-0.20, rho ≈ 0.55-0.70 with informative CI ✅  
 
-📖 **See [SIGNAL_TO_NOISE_FIX.md](SIGNAL_TO_NOISE_FIX.md) for complete technical explanation**
+📖 **See [TAU_SHRINKAGE_ISSUE.md](TAU_SHRINKAGE_ISSUE.md) for complete technical explanation**  
+📖 **See [ANSWER_TAU_SHRINKAGE.md](ANSWER_TAU_SHRINKAGE.md) for user-friendly guide**
 
 ### Previous Fixes:
+- ✅ Signal-to-noise ratio fix (see [SIGNAL_TO_NOISE_FIX.md](SIGNAL_TO_NOISE_FIX.md))
 - ✅ Data order mismatch fix (see [CRITICAL_BUG_FIX.md](CRITICAL_BUG_FIX.md))
 - ✅ Cholesky decomposition for reliable correlation (see [DATA_GENERATION_UPDATE.md](DATA_GENERATION_UPDATE.md))
 
