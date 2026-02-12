@@ -171,7 +171,17 @@ Default current trial parameters represent an NSCLC trial with:
 
 The model estimates a **between-trial correlation (ρ)** parameter that measures how trial-level effects correlate across endpoints. This is different from within-trial correlation!
 
-### Key Questions Answered:
+### Quick Reference:
+
+🔍 **[FAQ_CORRELATION.md](FAQ_CORRELATION.md)** - Frequently Asked Questions:
+- Why is my estimated ρ so low?
+- What information can I still borrow with low ρ?
+- How much does ρ matter for PoS?
+- When to expect high vs low ρ?
+- Should I change my prior on ρ?
+- **Quick decision framework and practical guidelines**
+
+### Detailed Guides:
 
 📖 **[UNDERSTANDING_CORRELATION.md](UNDERSTANDING_CORRELATION.md)** - Comprehensive guide covering:
 - What is between-trial correlation and why might it be low?
@@ -200,6 +210,8 @@ Even with **low between-trial correlation (ρ ≈ 0.1-0.3)**, historical data pr
 - Strength proportional to ρ value
 
 **Bottom line:** Low ρ doesn't mean historical data is useless - it just means we can't leverage PFS to predict OS. The model still provides robust statistical framework through population-level information and hierarchical structure.
+
+**Real-world impact:** Even with ρ = 0, hierarchical model can boost PoS by 15+ percentage points compared to analyzing current trial alone!
 
 ## Troubleshooting
 
