@@ -1,5 +1,17 @@
 # Bayesian Probability of Success (PoS) Simulation - R Shiny Application
 
+## ⚠️ CRITICAL FIX APPLIED (2026-02-12)
+
+**A critical bug affecting ρ estimation has been fixed!**  
+- **Issue:** Data order mismatch between generation and Stan model  
+- **Impact:** Stan estimated ρ ≈ 0.14 instead of correct ≈ 0.60-0.65  
+- **Fix:** Covariance matrix now correctly ordered as [OS, PFS] to match Stan model  
+- **Result:** ρ estimation now accurate ✅  
+
+📖 **See [CRITICAL_BUG_FIX.md](CRITICAL_BUG_FIX.md) for full technical details**
+
+---
+
 ## Overview
 
 This comprehensive R Shiny application provides an interactive interface for running full Bayesian Probability of Success (PoS) analysis for clinical trials using Overall Survival (OS) and Progression-Free Survival (PFS) data. The application is based on the existing `bayesian_pos_fixed current rho` code and implements a hierarchical Bayesian model with log-transformed hazard ratios.
