@@ -78,7 +78,7 @@ prepare_historical_loghr_data <- function() {
 # Stan model builder with flexible priors
 build_stan_model_improved <- function(prior_mu_os_mean = -0.35, prior_mu_os_sd = 1.0,
                                       prior_mu_pfs_mean = -0.45, prior_mu_pfs_sd = 1.0,
-                                      prior_tau_type = "exponential", prior_tau_param_os = 2, prior_tau_param_pfs = 2,
+                                      prior_tau_type = "half_normal", prior_tau_param_os = 0.5, prior_tau_param_pfs = 0.5,
                                       prior_rho_type = "uniform", prior_rho_param = 2) {
   
   # Build tau priors based on selected distribution
@@ -355,9 +355,10 @@ ui <- navbarPage(
                h4("Between-Trial Heterogeneity"),
                selectInput("prior_tau_type", "Distribution:",
                           choices = c("Exponential" = "exponential", "Half-Normal" = "half_normal"),
-                          selected = "exponential"),
-               numericInput("prior_tau_param_os", "τ_OS Parameter:", value = 2, min = 0.1, step = 0.1),
-               numericInput("prior_tau_param_pfs", "τ_PFS Parameter:", value = 2, min = 0.1, step = 0.1),
+                          selected = "half_normal"),
+               numericInput("prior_tau_param_os", "τ_OS Parameter:", value = 0.5, min = 0.1, step = 0.1),
+               numericInput("prior_tau_param_pfs", "τ_PFS Parameter:", value = 0.5, min = 0.1, step = 0.1),
+               helpText("For Exponential: parameter is rate (smaller = wider). For Half-Normal: parameter is SD (larger = wider)."),
                h4("Correlation"),
                selectInput("prior_rho_type", "Distribution:",
                           choices = c("Uniform(-0.95, 0.95)" = "uniform", "LKJ" = "lkj"),
