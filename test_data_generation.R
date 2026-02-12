@@ -11,16 +11,17 @@ set.seed(20260211)
 n_trials <- 27
 
 # Use Cholesky decomposition for precise correlation control
-mu_pfs <- -0.45
-mu_os <- -0.30
-sd_pfs <- 0.053  # Between-trial SD for PFS
+mu_os <- -0.30   # Population mean for OS
+mu_pfs <- -0.45  # Population mean for PFS
 sd_os <- 0.046   # Between-trial SD for OS
+sd_pfs <- 0.053  # Between-trial SD for PFS
 target_cor <- 0.65  # Target between-trial correlation
 
-# Create covariance matrix
+# Create covariance matrix IN [OS, PFS] ORDER to match Stan model
+# This is CRITICAL - order must match how data is passed to Stan
 cov_matrix <- matrix(c(
-  sd_pfs^2, target_cor * sd_pfs * sd_os,
-  target_cor * sd_pfs * sd_os, sd_os^2
+  sd_os^2, target_cor * sd_os * sd_pfs,
+  target_cor * sd_os * sd_pfs, sd_pfs^2
 ), nrow = 2, byrow = TRUE)
 
 cat("Covariance matrix:\n")
@@ -47,9 +48,9 @@ Y <- t(L) %*% Z
 cat("\nFirst few columns of Y:\n")
 print(Y[, 1:5])
 
-# Add means
-loghr_pfs <- mu_pfs + Y[1, ]
-loghr_os <- mu_os + Y[2, ]
+# Add means - Y[1,] is OS, Y[2,] is PFS (matching covariance matrix order)
+loghr_os <- mu_os + Y[1, ]
+loghr_pfs <- mu_pfs + Y[2, ]
 
 cat("\n=== BEFORE CLIPPING ===\n")
 cat("PFS: mean=", mean(loghr_pfs), "sd=", sd(loghr_pfs), "\n")
