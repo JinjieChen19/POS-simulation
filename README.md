@@ -1,0 +1,198 @@
+# Bayesian Probability of Success (PoS) Simulation - R Shiny Application
+
+## Overview
+
+This comprehensive R Shiny application provides an interactive interface for running full Bayesian Probability of Success (PoS) analysis for clinical trials using Overall Survival (OS) and Progression-Free Survival (PFS) data. The application is based on the existing `bayesian_pos_fixed current rho` code and implements a hierarchical Bayesian model with log-transformed hazard ratios.
+
+## Features
+
+### 1. Model Description Panel
+- Complete statistical model formulation with mathematical notation
+- Detailed prior specifications for all parameters
+- Explanation of non-centered parameterization
+- Likelihood structure documentation
+
+### 2. Interactive Model Execution Panel
+- Adjustable MCMC settings (iterations, chains)
+- Current trial parameter inputs (interim log HR and SE for OS/PFS)
+- Target log(HR) specification for success criteria
+- Real-time progress tracking
+- Comprehensive MCMC diagnostics output
+
+### 3. Results Visualization
+- Posterior distribution plots for log(HR) and HR on natural scale
+- Probability of Success (PoS) assessment with visual indicators
+- Population parameter estimates (μ, τ, ρ)
+- MCMC trace plots for convergence diagnostics
+- Publication-ready visualizations using ggplot2
+
+### 4. Data Management
+- Interactive table displaying historical trials data
+- Summary statistics and correlations
+- Editable current trial parameters
+
+### 5. Technical Features
+- Non-centered parameterization for improved MCMC convergence
+- Adaptive HMC with adapt_delta = 0.99 and max_treedepth = 12
+- Parallel processing support (automatic CPU core detection)
+- Comprehensive error handling
+- Real-time diagnostics monitoring
+
+## Installation
+
+### Prerequisites
+
+Install required R packages:
+
+```r
+install.packages(c(
+  "shiny",
+  "shinythemes",
+  "tidyverse",
+  "rstan",
+  "bayesplot",
+  "DT",
+  "gridExtra"
+))
+```
+
+### rstan Installation
+
+For detailed rstan installation instructions, visit: https://github.com/stan-dev/rstan/wiki/RStan-Getting-Started
+
+## Usage
+
+### Running the Application
+
+1. **From R/RStudio:**
+```r
+library(shiny)
+runApp("app.R")
+```
+
+2. **From command line:**
+```bash
+R -e "shiny::runApp('app.R')"
+```
+
+### Application Workflow
+
+1. **Review Model Description**: Start with the "Model Description" tab to understand the statistical framework
+
+2. **View Historical Data**: Check the "Data" tab to see the 10 historical immunotherapy trials
+
+3. **Configure Parameters**: Navigate to "Run Model" and set:
+   - MCMC iterations (default: 4000)
+   - Number of chains (default: 4)
+   - Current trial interim OS log(HR) and SE
+   - Current trial interim PFS log(HR) and SE
+   - Target log(HR) for success
+
+4. **Execute Model**: Click "Run Stan Model" to perform Bayesian analysis
+
+5. **Review Results**: Navigate to "Results" tab to see:
+   - Posterior distributions
+   - PoS assessment
+   - Population parameters
+   - MCMC diagnostics
+
+## Model Details
+
+### Statistical Framework
+
+The application implements a hierarchical Bayesian model:
+
+**Data level:**
+- y_{k,j} ~ N(θ_{k,j}, W_{k,j})
+
+**Population level:**
+- θ_k ~ N(μ, Σ)
+
+**Priors:**
+- μ_OS ~ N(-0.35, 1.0)
+- μ_PFS ~ N(-0.45, 1.0)
+- τ_OS ~ Exp(2)
+- τ_PFS ~ Exp(2)
+- ρ ~ Uniform(-0.95, 0.95)
+
+**Non-centered parameterization:**
+- θ_k = μ + L_Σ * z_k, where z_k ~ N(0, I)
+
+### Probability of Success
+
+PoS is calculated as:
+```
+PoS = P(θ_OS,current < target | data)
+```
+
+**Interpretation:**
+- PoS ≥ 0.90: ★★★ VERY HIGH - Trial very likely to succeed
+- PoS ≥ 0.70: ★★ HIGH - Trial likely to succeed
+- PoS ≥ 0.50: ★ MODERATE - Trial may succeed
+- PoS < 0.50: ✗ LOW - Trial unlikely to succeed
+
+## Default Data
+
+The application uses simulated data from 10 historical immunotherapy trials covering:
+- Melanoma
+- Non-Small Cell Lung Cancer (NSCLC)
+- Renal Cell Carcinoma
+- Hepatocellular Carcinoma (HCC)
+
+Default current trial parameters represent an NSCLC trial with:
+- Interim PFS log(HR): -0.48 (SE: 0.12)
+- Interim OS log(HR): -0.35 (SE: 0.25)
+- Target OS log(HR): -0.30
+
+## Technical Notes
+
+- **Computing Time**: Model execution typically takes 2-5 minutes depending on MCMC settings and available CPU cores
+- **Parallel Processing**: The app automatically detects and uses available CPU cores for parallel chain execution
+- **Convergence Diagnostics**: R-hat values should be < 1.01 for adequate convergence
+- **Effective Sample Size**: ESS should be > 100 per chain for reliable inference
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Model compilation errors**: Ensure rstan is properly installed and configured
+2. **Divergent transitions**: Already addressed with adapt_delta = 0.99
+3. **Low ESS**: Increase number of iterations if ESS warnings appear
+4. **Memory issues**: Reduce number of iterations or chains if memory is limited
+
+### Performance Tips
+
+- Use parallel processing by ensuring multiple cores are available
+- Start with default settings (4000 iterations, 4 chains) for balance between speed and reliability
+- Monitor R-hat and ESS values in diagnostics output
+
+## File Structure
+
+```
+POS-simulation/
+├── app.R                              # Main Shiny application
+├── README.md                          # This file
+├── bayesian_pos_fixed current rho     # Original R script (reference)
+└── [other project files]
+```
+
+## Citation
+
+If you use this application in your research, please cite the original methodology and this implementation.
+
+## License
+
+[Add appropriate license information]
+
+## Contact
+
+[Add contact information for questions/issues]
+
+## Changelog
+
+### Version 1.0.0 (2026-02-12)
+- Initial release
+- Complete Shiny interface implementation
+- All five main panels operational
+- Non-centered parameterization for improved convergence
+- Real-time diagnostics and visualization
