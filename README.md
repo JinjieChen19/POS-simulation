@@ -41,6 +41,26 @@
 
 ---
 
+## 🆕 NEW FEATURE: Informative Priors for ρ (2026-02-12 21:00)
+
+**Issue:** Default Uniform(-0.95, 0.95) prior may be too wide when positive correlation is expected
+
+**Solution:** Added **informative positive-only priors**:
+- **Uniform(0, 0.95)** - Simple flat prior over positive correlations
+- **Beta(α, β)** - Flexible prior with customizable concentration
+  - Beta(2, 1): Weakly favors high positive correlation
+  - Beta(5, 1): Strongly favors high positive correlation
+  - Beta(2, 2): Favors moderate positive correlation around 0.5
+
+**When to use:** 
+- Oncology trials where OS and PFS typically positively correlated
+- Have domain knowledge suggesting ρ > 0
+- Want more efficient estimation with narrower credible intervals
+
+📖 **FULL GUIDE:** [INFORMATIVE_RHO_PRIORS.md](INFORMATIVE_RHO_PRIORS.md) - Complete explanation, comparisons, and recommendations
+
+---
+
 ## Overview
 
 This comprehensive R Shiny application provides an interactive interface for running full Bayesian Probability of Success (PoS) analysis for clinical trials using Overall Survival (OS) and Progression-Free Survival (PFS) data. The application is based on the existing `bayesian_pos_fixed current rho` code and implements a hierarchical Bayesian model with log-transformed hazard ratios.
@@ -63,7 +83,8 @@ This comprehensive R Shiny application provides an interactive interface for run
 - **Prior Specifications:**
   - **NEW:** Population means (μ_OS, μ_PFS) - customizable mean and SD
   - **NEW:** Between-trial heterogeneity - choice of Exponential or Half-Normal
-  - **NEW:** Correlation prior - choice of Uniform or LKJ
+  - **NEW:** Correlation prior - choice of Uniform, Uniform(positive), Beta, or LKJ
+  - **NEW:** Informative positive priors for ρ when expecting positive correlation (typical in oncology)
 - Current trial parameter inputs (interim log HR and SE for OS/PFS)
 - Target log(HR) specification for success criteria
 - Real-time progress tracking
