@@ -34,8 +34,8 @@ prepare_historical_loghr_data <- function() {
   # Define population parameters
   mu_os <- -0.30   # Population mean for OS
   mu_pfs <- -0.45  # Population mean for PFS
-  sd_os <- 0.046   # Between-trial SD for OS
-  sd_pfs <- 0.053  # Between-trial SD for PFS
+  sd_os <- 0.15    # Between-trial SD for OS (increased for better identifiability)
+  sd_pfs <- 0.15   # Between-trial SD for PFS (increased for better identifiability)
   target_cor <- 0.65  # Target between-trial correlation
   
   # Create covariance matrix IN [OS, PFS] ORDER to match Stan model
@@ -58,19 +58,19 @@ prepare_historical_loghr_data <- function() {
   loghr_os <- mu_os + Y[1, ]
   loghr_pfs <- mu_pfs + Y[2, ]
   
-  # Ensure reasonable ranges (but don't clip too aggressively)
-  loghr_pfs <- pmax(pmin(loghr_pfs, -0.30), -0.60)
-  loghr_os <- pmax(pmin(loghr_os, -0.15), -0.45)
+  # Ensure reasonable ranges (gentle clipping to maintain realistic values)
+  loghr_pfs <- pmax(pmin(loghr_pfs, -0.15), -0.75)
+  loghr_os <- pmax(pmin(loghr_os, -0.05), -0.55)
   
   tibble(
     trial_id = paste0("ICB-HIST-", sprintf("%02d", 1:27)),
     cancer_type = rep(c("Melanoma", "NSCLC", "Renal", "HCC", "Bladder", "Gastric"), length.out = 27),
     n_patients = sample(95:200, 27, replace = TRUE),
     loghr_pfs = loghr_pfs,
-    se_loghr_pfs = runif(27, 0.12, 0.18),
+    se_loghr_pfs = runif(27, 0.12, 0.18),  # Within-trial SE (measurement uncertainty)
     loghr_os = loghr_os,
-    se_loghr_os = runif(27, 0.16, 0.22),
-    corr_pfs_os = runif(27, 0.60, 0.75)  # Within-trial correlations
+    se_loghr_os = runif(27, 0.16, 0.22),   # Within-trial SE (measurement uncertainty)
+    corr_pfs_os = runif(27, 0.60, 0.75)    # Within-trial correlations
   ) %>%
     mutate(cov_pfs_os = corr_pfs_os * se_loghr_pfs * se_loghr_os)
 }

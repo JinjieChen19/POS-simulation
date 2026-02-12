@@ -13,8 +13,8 @@ n_trials <- 27
 # Use Cholesky decomposition for precise correlation control
 mu_os <- -0.30   # Population mean for OS
 mu_pfs <- -0.45  # Population mean for PFS
-sd_os <- 0.046   # Between-trial SD for OS
-sd_pfs <- 0.053  # Between-trial SD for PFS
+sd_os <- 0.15    # Between-trial SD for OS (increased for better identifiability)
+sd_pfs <- 0.15   # Between-trial SD for PFS (increased for better identifiability)
 target_cor <- 0.65  # Target between-trial correlation
 
 # Create covariance matrix IN [OS, PFS] ORDER to match Stan model
@@ -59,9 +59,9 @@ cat("Correlation:", cor(loghr_pfs, loghr_os), "\n")
 cat("PFS range:", range(loghr_pfs), "\n")
 cat("OS range:", range(loghr_os), "\n")
 
-# Ensure reasonable ranges (but don't clip too aggressively)
-loghr_pfs_clipped <- pmax(pmin(loghr_pfs, -0.30), -0.60)
-loghr_os_clipped <- pmax(pmin(loghr_os, -0.15), -0.45)
+# Ensure reasonable ranges (gentle clipping to maintain realistic values)
+loghr_pfs_clipped <- pmax(pmin(loghr_pfs, -0.15), -0.75)
+loghr_os_clipped <- pmax(pmin(loghr_os, -0.05), -0.55)
 
 cat("\n=== AFTER CLIPPING ===\n")
 cat("PFS: mean=", mean(loghr_pfs_clipped), "sd=", sd(loghr_pfs_clipped), "\n")
