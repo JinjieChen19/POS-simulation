@@ -278,6 +278,27 @@ ui <- navbarPage(
                       tags$li(HTML("<strong>Current trial:</strong> Interim data from the ongoing trial, combined with historical information via Bayesian shrinkage"))
                     ),
                     
+                    h4("How is ρ (Between-Trial Correlation) Estimated?"),
+                    div(style="background-color: #f0f8ff; padding: 15px; border-left: 4px solid #4682b4; margin: 10px 0;",
+                      p(strong("Key Question:"), "How can we estimate ρ from historical trials alone, without the current trial?"),
+                      p(strong("Answer:"), "Each historical trial provides a ", strong("bivariate observation"), 
+                        " (log HR for OS, log HR for PFS). With K=27 trials, we have 27 pairs of (OS, PFS) values."),
+                      p("The model learns:"),
+                      tags$ol(
+                        tags$li("Population means (μ_OS, μ_PFS) from the average of all trials"),
+                        tags$li("Each trial's deviation from these means"),
+                        tags$li(HTML("<strong>The correlation of these deviations = ρ</strong>"))
+                      ),
+                      p(strong("Example pattern:")),
+                      tags$ul(
+                        tags$li("Trial with better-than-average OS also has better-than-average PFS → Positive ρ"),
+                        tags$li("Trial with better OS has worse PFS → Negative ρ"),
+                        tags$li("OS and PFS deviations unrelated → ρ ≈ 0")
+                      ),
+                      p(strong("Impact of current trial:"), "With 27 historical trials, the current trial adds only 1/28 = 3.6% of information about ρ."),
+                      p(HTML("📖 <strong>Detailed explanation:</strong> See <a href='https://github.com/JinjieChen19/POS-simulation/blob/main/HOW_RHO_IS_ESTIMATED.md' target='_blank'>HOW_RHO_IS_ESTIMATED.md</a> for complete technical details."))
+                    ),
+                    
                     h4("Probability of Success (PoS)"),
                     p("The PoS is calculated as:"),
                     helpText("$$PoS = P(\\theta_{OS,current} < \\text{target} | \\text{data})$$"),
@@ -442,6 +463,21 @@ ui <- navbarPage(
                     h3("Understanding Between-Trial Correlation (ρ)"),
                     p(HTML("<strong>Important:</strong> The model estimates a between-trial correlation parameter (ρ) 
                           that is different from within-trial correlation!")),
+                    
+                    h4("How is ρ estimated from historical trials?"),
+                    div(style="background-color: #fffacd; padding: 10px; border-left: 3px solid #ffa500; margin: 10px 0;",
+                      p(strong("Key insight:"), "ρ is estimated from the pattern of trial-level co-variation in historical data alone."),
+                      p("Each historical trial provides a ", strong("bivariate observation"), " (log HR for OS, log HR for PFS). 
+                        With 27 historical trials, we have 27 pairs."),
+                      p(strong("The model learns:")),
+                      tags$ol(
+                        tags$li("Population means (μ_OS, μ_PFS)"),
+                        tags$li("Each trial's deviation from these means"),
+                        tags$li("The correlation of these deviations = ρ")
+                      ),
+                      p(strong("Current trial impact:"), "Only 1/28 = 3.6% of information about ρ. Historical data provides 96.4%."),
+                      p(HTML("📖 <strong>Full details:</strong> <a href='https://github.com/JinjieChen19/POS-simulation/blob/main/HOW_RHO_IS_ESTIMATED.md' target='_blank'>HOW_RHO_IS_ESTIMATED.md</a>"))
+                    ),
                     
                     h4("What is ρ?"),
                     p("Between-trial correlation (ρ) measures how trial-level effects correlate across endpoints. 

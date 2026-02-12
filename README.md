@@ -173,7 +173,15 @@ The model estimates a **between-trial correlation (ρ)** parameter that measures
 
 ### Quick Reference:
 
+🎯 **[HOW_RHO_IS_ESTIMATED.md](HOW_RHO_IS_ESTIMATED.md)** - **NEW! How is ρ estimated?**
+- How ρ is learned from historical trial data structure alone
+- Why current trial is NOT needed to estimate ρ
+- Worked numerical examples showing the estimation process
+- Mathematical intuition and validation
+- **Essential reading for understanding the estimation mechanism**
+
 🔍 **[FAQ_CORRELATION.md](FAQ_CORRELATION.md)** - Frequently Asked Questions:
+- **Q0: How is ρ estimated from historical trials?** (NEW!)
 - Why is my estimated ρ so low?
 - What information can I still borrow with low ρ?
 - How much does ρ matter for PoS?

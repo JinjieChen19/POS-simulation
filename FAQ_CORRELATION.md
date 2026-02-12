@@ -4,6 +4,49 @@
 
 ---
 
+## Q0: How is ρ (between-trial correlation) estimated from historical trials?
+
+**A:** **ρ is estimated from the pattern of trial-level co-variation in the historical data.**
+
+### Quick Answer:
+
+Each historical trial provides a **bivariate observation** (log HR for OS, log HR for PFS). With K=27 historical trials, we have 27 pairs of (OS, PFS) values. The correlation between these trial-level deviations from population means **IS** the between-trial correlation ρ.
+
+**The current trial is NOT needed** - ρ is estimated entirely from the historical trials.
+
+### How It Works:
+
+1. **Data:** K=27 historical trials, each with (OS, PFS) pair
+2. **Model learns:** Population means (μ_OS, μ_PFS)
+3. **Model calculates:** Deviations from means for each trial
+4. **Model estimates:** Correlation of these deviations = ρ
+
+### Example:
+
+```
+Trial  OS      PFS      OS Deviation  PFS Deviation
+1     -0.35   -0.50    -0.05          -0.05        ← Both better
+2     -0.30   -0.45     0.00           0.00        ← Both average
+3     -0.25   -0.40    +0.05          +0.05        ← Both worse
+
+Pattern: When OS is better, PFS is also better
+Estimated ρ ≈ 1.0 (strong positive correlation)
+```
+
+If OS and PFS deviations move together → High ρ  
+If OS and PFS deviations are unrelated → Low ρ
+
+### Impact of Current Trial:
+
+- **27 historical trials:** Primary source of ρ information (96.4%)
+- **1 current trial:** Minor refinement (3.6%)
+
+**Bottom Line:** ρ is well-estimated from historical data alone. Current trial adds minimal information about ρ.
+
+📖 **Detailed explanation:** See [HOW_RHO_IS_ESTIMATED.md](HOW_RHO_IS_ESTIMATED.md) for complete technical details, worked examples, and validation.
+
+---
+
 ## Q1: Why is my estimated ρ (between-trial correlation) so low?
 
 **A:** Low ρ is often **realistic and appropriate**! Here's why:
