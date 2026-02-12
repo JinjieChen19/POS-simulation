@@ -439,6 +439,41 @@ ui <- navbarPage(
                       tags$li(HTML("<strong>PoS < 0.50:</strong> LOW - Trial unlikely to succeed"))
                     ),
                     
+                    h3("Understanding Between-Trial Correlation (ρ)"),
+                    p(HTML("<strong>Important:</strong> The model estimates a between-trial correlation parameter (ρ) 
+                          that is different from within-trial correlation!")),
+                    
+                    h4("What is ρ?"),
+                    p("Between-trial correlation (ρ) measures how trial-level effects correlate across endpoints. 
+                      For example, do trials with better-than-average PFS also tend to have better-than-average OS?"),
+                    
+                    h4("Why might ρ be low?"),
+                    tags$ul(
+                      tags$li("Different patient populations across trials"),
+                      tags$li("Varying post-progression treatments"),
+                      tags$li("Different biological mechanisms for PFS vs OS benefit"),
+                      tags$li("This is often realistic and data-driven!")
+                    ),
+                    
+                    h4("What information is still borrowed with low ρ?"),
+                    p(HTML("<strong>Even with ρ = 0, historical data provides substantial value:</strong>")),
+                    tags$ul(
+                      tags$li(HTML("<strong>Population means (μ):</strong> Average treatment effects across trials")),
+                      tags$li(HTML("<strong>Heterogeneity (τ):</strong> How much trials vary, calibrating uncertainty")),
+                      tags$li(HTML("<strong>Hierarchical shrinkage:</strong> Prevents overfitting, reduces noise")),
+                      tags$li(HTML("<strong>Better uncertainty:</strong> More realistic credible intervals"))
+                    ),
+                    
+                    p(HTML("<strong>Only affected by low ρ:</strong>")),
+                    tags$ul(
+                      tags$li(HTML("<strong>Cross-endpoint borrowing:</strong> Cannot use PFS to predict OS when ρ ≈ 0")),
+                      tags$li(HTML("PoS relies mainly on OS data itself, not PFS"))
+                    ),
+                    
+                    p(HTML("📖 <strong>For detailed explanation:</strong> See 
+                          <a href='https://github.com/JinjieChen19/POS-simulation/blob/main/UNDERSTANDING_CORRELATION.md' target='_blank'>UNDERSTANDING_CORRELATION.md</a> 
+                          in the repository.")),
+                    
                     h3("Technical Notes"),
                     tags$ul(
                       tags$li("The model uses rstan for Bayesian inference with Hamiltonian Monte Carlo (HMC)"),

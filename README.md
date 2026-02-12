@@ -165,6 +165,42 @@ Default current trial parameters represent an NSCLC trial with:
 - **Effective Sample Size**: ESS should be > 100 per chain for reliable inference
 - **MCMC Controls**: adapt_delta and max_treedepth are now user-adjustable for fine-tuning convergence
 
+## Understanding Between-Trial Correlation
+
+**Important Statistical Concepts:**
+
+The model estimates a **between-trial correlation (ρ)** parameter that measures how trial-level effects correlate across endpoints. This is different from within-trial correlation!
+
+### Key Questions Answered:
+
+📖 **[UNDERSTANDING_CORRELATION.md](UNDERSTANDING_CORRELATION.md)** - Comprehensive guide covering:
+- What is between-trial correlation and why might it be low?
+- What information can be borrowed from historical data even with low ρ?
+- How the hierarchical model works regardless of correlation
+- Practical examples and scenarios
+
+🎨 **[VISUAL_GUIDE_CORRELATION.md](VISUAL_GUIDE_CORRELATION.md)** - Visual explanations including:
+- Diagrams showing two types of correlation (within-trial vs between-trial)
+- Information flow charts for different ρ values
+- Numerical examples comparing high vs low correlation scenarios
+- Decision trees for interpreting results
+
+### Quick Summary:
+
+Even with **low between-trial correlation (ρ ≈ 0.1-0.3)**, historical data provides substantial value:
+
+✅ **Always Borrowed** (regardless of ρ):
+- Population mean effects (μ_OS, μ_PFS)
+- Between-trial heterogeneity (τ_OS, τ_PFS)
+- Hierarchical shrinkage (prevents overfitting)
+- Proper uncertainty quantification
+
+✅ **Conditionally Borrowed** (only when ρ > 0):
+- Cross-endpoint information (PFS → OS predictions)
+- Strength proportional to ρ value
+
+**Bottom line:** Low ρ doesn't mean historical data is useless - it just means we can't leverage PFS to predict OS. The model still provides robust statistical framework through population-level information and hierarchical structure.
+
 ## Troubleshooting
 
 ### Common Issues
