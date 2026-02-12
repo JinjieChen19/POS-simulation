@@ -67,17 +67,25 @@ R -e "shiny::runApp('app.R')"
 - Click **"Model Description"** tab
 - Review the statistical framework
 - Understand the priors and model structure
+- **NEW:** Note the customizable features
 
 #### 2. View Historical Data (1 minute)
 - Click **"Data"** tab
-- Examine the 10 historical trials
-- Note the cancer types and effect sizes
+- Examine the **27 historical trials** (expanded from 10)
+- Note the **6 cancer types** and effect sizes
 
 #### 3. Run the Model (5-10 minutes)
 - Click **"Run Model"** tab
-- Keep default settings for first run:
-  - Iterations: 4000
-  - Chains: 4
+- **NEW Features - MCMC Settings:**
+  - Iterations: 4000 (adjustable)
+  - Chains: 4 (adjustable)
+  - Adapt delta: 0.99 (adjustable)
+  - Max treedepth: 12 (adjustable)
+- **NEW Features - Prior Settings:**
+  - Population means: Default N(-0.35, 1.0) and N(-0.45, 1.0)
+  - Heterogeneity: Choose Exponential or Half-Normal
+  - Correlation: Choose Uniform or LKJ
+- **Current Trial Parameters:**
   - Current trial OS log(HR): -0.35 ± 0.25
   - Current trial PFS log(HR): -0.48 ± 0.12
   - Target: -0.30
@@ -94,6 +102,22 @@ R -e "shiny::runApp('app.R')"
 
 #### 5. Get Help (as needed)
 - Click **"Help"** tab for detailed guidance
+
+### Exploring New Features
+
+#### Adjusting MCMC Settings
+Try increasing `adapt_delta` to 0.995 or 0.999 if you see divergent transition warnings.
+Try increasing `max_treedepth` to 14 or 15 for complex posteriors.
+
+#### Customizing Priors
+1. **Population Means:** Adjust based on expected treatment effect
+   - Example: Set μ_OS to -0.40 for more optimistic prior
+2. **Heterogeneity:** 
+   - Use Exponential for lighter tails
+   - Use Half-Normal for more regularization
+3. **Correlation:**
+   - Use Uniform for non-informative prior
+   - Use LKJ with η=2 for mild regularization toward independence
 
 ### Example Workflow
 

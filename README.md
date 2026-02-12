@@ -11,9 +11,18 @@ This comprehensive R Shiny application provides an interactive interface for run
 - Detailed prior specifications for all parameters
 - Explanation of non-centered parameterization
 - Likelihood structure documentation
+- Information about customizable features
 
 ### 2. Interactive Model Execution Panel
-- Adjustable MCMC settings (iterations, chains)
+- **MCMC Settings:**
+  - Adjustable iterations (default: 4000)
+  - Number of chains (default: 4)
+  - **NEW:** Adjustable adapt_delta (default: 0.99)
+  - **NEW:** Adjustable max_treedepth (default: 12)
+- **Prior Specifications:**
+  - **NEW:** Population means (μ_OS, μ_PFS) - customizable mean and SD
+  - **NEW:** Between-trial heterogeneity - choice of Exponential or Half-Normal
+  - **NEW:** Correlation prior - choice of Uniform or LKJ
 - Current trial parameter inputs (interim log HR and SE for OS/PFS)
 - Target log(HR) specification for success criteria
 - Real-time progress tracking
@@ -27,16 +36,18 @@ This comprehensive R Shiny application provides an interactive interface for run
 - Publication-ready visualizations using ggplot2
 
 ### 4. Data Management
-- Interactive table displaying historical trials data
+- Interactive table displaying **27 historical trials** (expanded from 10)
+- **6 cancer types:** Melanoma, NSCLC, Renal, HCC, Bladder, Gastric
 - Summary statistics and correlations
 - Editable current trial parameters
 
 ### 5. Technical Features
 - Non-centered parameterization for improved MCMC convergence
-- Adaptive HMC with adapt_delta = 0.99 and max_treedepth = 12
+- Adaptive HMC with customizable adapt_delta and max_treedepth
 - Parallel processing support (automatic CPU core detection)
 - Comprehensive error handling
 - Real-time diagnostics monitoring
+- **Flexible prior specification system**
 
 ## Installation
 
@@ -108,12 +119,12 @@ The application implements a hierarchical Bayesian model:
 **Population level:**
 - θ_k ~ N(μ, Σ)
 
-**Priors:**
-- μ_OS ~ N(-0.35, 1.0)
-- μ_PFS ~ N(-0.45, 1.0)
-- τ_OS ~ Exp(2)
-- τ_PFS ~ Exp(2)
-- ρ ~ Uniform(-0.95, 0.95)
+**Default Priors (Customizable):**
+- μ_OS ~ N(-0.35, 1.0) - **adjustable mean and SD**
+- μ_PFS ~ N(-0.45, 1.0) - **adjustable mean and SD**
+- τ_OS ~ Exp(2) or Half-Normal(0, σ) - **choice of distribution**
+- τ_PFS ~ Exp(2) or Half-Normal(0, σ) - **choice of distribution**
+- ρ ~ Uniform(-0.95, 0.95) or LKJ(η) - **choice of distribution**
 
 **Non-centered parameterization:**
 - θ_k = μ + L_Σ * z_k, where z_k ~ N(0, I)
@@ -133,11 +144,13 @@ PoS = P(θ_OS,current < target | data)
 
 ## Default Data
 
-The application uses simulated data from 10 historical immunotherapy trials covering:
+The application uses simulated data from **27 historical immunotherapy trials** covering:
 - Melanoma
 - Non-Small Cell Lung Cancer (NSCLC)
 - Renal Cell Carcinoma
 - Hepatocellular Carcinoma (HCC)
+- **Bladder Cancer**
+- **Gastric Cancer**
 
 Default current trial parameters represent an NSCLC trial with:
 - Interim PFS log(HR): -0.48 (SE: 0.12)
@@ -150,13 +163,14 @@ Default current trial parameters represent an NSCLC trial with:
 - **Parallel Processing**: The app automatically detects and uses available CPU cores for parallel chain execution
 - **Convergence Diagnostics**: R-hat values should be < 1.01 for adequate convergence
 - **Effective Sample Size**: ESS should be > 100 per chain for reliable inference
+- **MCMC Controls**: adapt_delta and max_treedepth are now user-adjustable for fine-tuning convergence
 
 ## Troubleshooting
 
 ### Common Issues
 
 1. **Model compilation errors**: Ensure rstan is properly installed and configured
-2. **Divergent transitions**: Already addressed with adapt_delta = 0.99
+2. **Divergent transitions**: Adjust adapt_delta (increase toward 0.999) if warnings appear
 3. **Low ESS**: Increase number of iterations if ESS warnings appear
 4. **Memory issues**: Reduce number of iterations or chains if memory is limited
 
