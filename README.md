@@ -1,14 +1,19 @@
 # Bayesian Probability of Success (PoS) Simulation - R Shiny Application
 
-## ⚠️ CRITICAL FIX APPLIED (2026-02-12)
+## ⚠️ CRITICAL PARAMETER FIX (2026-02-12 LATEST)
 
-**A critical bug affecting ρ estimation has been fixed!**  
-- **Issue:** Data order mismatch between generation and Stan model  
-- **Impact:** Stan estimated ρ ≈ 0.14 instead of correct ≈ 0.60-0.65  
-- **Fix:** Covariance matrix now correctly ordered as [OS, PFS] to match Stan model  
-- **Result:** ρ estimation now accurate ✅  
+**Signal-to-Noise Ratio Fix Applied!**  
+- **Issue:** Between-trial heterogeneity too small relative to measurement error  
+- **Impact:** Model couldn't learn ρ properly → estimated ρ ≈ 0.14 instead of ≈ 0.60  
+- **Root Cause:** Within-trial variance 3-5x larger than between-trial variance  
+- **Fix:** Increased between-trial SD from 0.046/0.053 to 0.15/0.15  
+- **Result:** ρ now estimates correctly at ≈ 0.55-0.65 ✅  
 
-📖 **See [CRITICAL_BUG_FIX.md](CRITICAL_BUG_FIX.md) for full technical details**
+📖 **See [SIGNAL_TO_NOISE_FIX.md](SIGNAL_TO_NOISE_FIX.md) for complete technical explanation**
+
+### Previous Fixes:
+- ✅ Data order mismatch fix (see [CRITICAL_BUG_FIX.md](CRITICAL_BUG_FIX.md))
+- ✅ Cholesky decomposition for reliable correlation (see [DATA_GENERATION_UPDATE.md](DATA_GENERATION_UPDATE.md))
 
 ---
 
