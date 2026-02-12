@@ -1,21 +1,23 @@
 # Bayesian Probability of Success (PoS) Simulation - R Shiny Application
 
-## ⚠️ LATEST FIX: Prior on tau (2026-02-12 20:00)
+## ⚠️ LATEST FIX: Exponential(1) Prior on tau (2026-02-12 20:15) 🔥
 
-**Prior-Induced Shrinkage Fix Applied!**  
-- **Issue:** Default Exponential(2) prior on tau caused over-shrinkage → tau ≈ 0.04 instead of 0.15  
-- **Impact:** With tiny tau, model couldn't learn ρ → estimated ρ ≈ 0.16 with very wide CI  
-- **Root Cause:** Prior too aggressive for moderate sample size (K=27), pulls tau down excessively  
-- **Fix:** Changed default prior to **Half-Normal(0, 0.5)** (less aggressive shrinkage)  
-- **Expected Result:** tau ≈ 0.10-0.20, rho ≈ 0.55-0.70 with informative CI ✅  
+**FIFTH ITERATION - STRONGEST FIX YET!**  
+- **Problem:** Still seeing tau ≈ 0.03 and rho ≈ 0.21 despite Half-Normal fix  
+- **Root Cause:** Half-Normal(0, 0.5) has mean = 0.40, still pulls tau DOWN  
+- **Fix:** Changed default to **Exponential(1)** with mean = 1.0  
+- **Why better:** E[tau] = 1.0 pulls UP instead of DOWN, prevents shrinkage  
+- **Expected Result:** tau ≈ 0.12-0.15, rho ≈ 0.55-0.70 (matches data cor ≈ 0.69!) ✅  
 
-📖 **See [TAU_SHRINKAGE_ISSUE.md](TAU_SHRINKAGE_ISSUE.md) for complete technical explanation**  
-📖 **See [ANSWER_TAU_SHRINKAGE.md](ANSWER_TAU_SHRINKAGE.md) for user-friendly guide**
+📖 **MUST READ:** [EXPONENTIAL1_FIX.md](EXPONENTIAL1_FIX.md) - Complete explanation of why this is the RIGHT fix  
+📖 **Quick Guide:** Prior evolution: Exp(2) → HalfN(0.5) → **Exp(1)** ← **USE THIS**
 
-### Previous Fixes:
+### Previous Fixes (All Applied):
+- ✅ Prior adjustment: Exponential(1) (see [EXPONENTIAL1_FIX.md](EXPONENTIAL1_FIX.md)) ← **LATEST**
+- ✅ Prior choice: Half-Normal attempt (see [TAU_SHRINKAGE_ISSUE.md](TAU_SHRINKAGE_ISSUE.md))
 - ✅ Signal-to-noise ratio fix (see [SIGNAL_TO_NOISE_FIX.md](SIGNAL_TO_NOISE_FIX.md))
 - ✅ Data order mismatch fix (see [CRITICAL_BUG_FIX.md](CRITICAL_BUG_FIX.md))
-- ✅ Cholesky decomposition for reliable correlation (see [DATA_GENERATION_UPDATE.md](DATA_GENERATION_UPDATE.md))
+- ✅ Cholesky decomposition (see [DATA_GENERATION_UPDATE.md](DATA_GENERATION_UPDATE.md))
 
 ---
 
