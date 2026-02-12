@@ -79,7 +79,7 @@ prepare_historical_loghr_data <- function() {
 build_stan_model_improved <- function(prior_mu_os_mean = -0.35, prior_mu_os_sd = 1.0,
                                       prior_mu_pfs_mean = -0.45, prior_mu_pfs_sd = 1.0,
                                       prior_tau_type = "exponential", prior_tau_param_os = 1, prior_tau_param_pfs = 1,
-                                      prior_rho_type = "uniform", prior_rho_param = 2) {
+                                      prior_rho_type = "uniform", prior_rho_param = 2, prior_rho_param2 = 1) {
   
   # Build tau priors based on selected distribution
   if (prior_tau_type == "exponential") {
@@ -94,6 +94,15 @@ build_stan_model_improved <- function(prior_mu_os_mean = -0.35, prior_mu_os_sd =
   if (prior_rho_type == "uniform") {
     rho_declaration <- "real<lower=-0.95, upper=0.95> rho;"
     rho_prior <- "rho ~ uniform(-0.95, 0.95);"
+  } else if (prior_rho_type == "uniform_positive") {
+    # Informative prior assuming positive correlation
+    rho_declaration <- "real<lower=0, upper=0.95> rho;"
+    rho_prior <- "rho ~ uniform(0, 0.95);"
+  } else if (prior_rho_type == "beta") {
+    # Beta prior on (0, 1) for positive correlation
+    # prior_rho_param is alpha, second param (beta_param) is beta
+    rho_declaration <- "real<lower=0, upper=1> rho;"
+    rho_prior <- paste0("rho ~ beta(", prior_rho_param, ", ", prior_rho_param2, ");")
   } else if (prior_rho_type == "lkj") {
     # For LKJ, we need to work with correlation matrix
     rho_declaration <- "real<lower=-1, upper=1> rho;"
@@ -279,7 +288,8 @@ ui <- navbarPage(
                       ),
                       tags$li(HTML("<strong>Correlation:</strong>")),
                       tags$ul(
-                        tags$li(HTML("ρ ~ Uniform(-0.95, 0.95) or LKJ(η) [Distribution and parameter adjustable]"))
+                        tags$li(HTML("ρ ~ Uniform(-0.95, 0.95), Uniform(0, 0.95), Beta(α, β), or LKJ(η) [Distribution and parameter adjustable]")),
+                        tags$li(HTML("<em>Informative option:</em> For oncology trials where positive correlation is expected, use Uniform(0, 0.95) or Beta priors"))
                       )
                     ),
                     
@@ -330,7 +340,8 @@ ui <- navbarPage(
                       tags$li("27 historical trials for more robust estimation"),
                       tags$li("Flexible prior distributions for all model parameters"),
                       tags$li("Choice of Exponential or Half-Normal priors for heterogeneity"),
-                      tags$li("Choice of Uniform or LKJ priors for correlation")
+                      tags$li("Choice of Uniform, Uniform(positive), Beta, or LKJ priors for correlation"),
+                      tags$li("Informative positive priors for ρ when expecting positive correlation (typical in oncology)")
                     )
              )
            )
@@ -361,12 +372,22 @@ ui <- navbarPage(
                helpText("For Exponential(rate): mean = 1/rate. RECOMMENDED: rate=1 (mean=1.0) to avoid over-shrinkage. For Half-Normal(SD): use SD >= 1.0."),
                h4("Correlation"),
                selectInput("prior_rho_type", "Distribution:",
-                          choices = c("Uniform(-0.95, 0.95)" = "uniform", "LKJ" = "lkj"),
+                          choices = c("Uniform(-0.95, 0.95)" = "uniform", 
+                                    "Uniform(0, 0.95) - Positive Only" = "uniform_positive",
+                                    "Beta(α, β) - Positive Only" = "beta",
+                                    "LKJ" = "lkj"),
                           selected = "uniform"),
+               conditionalPanel(
+                 condition = "input.prior_rho_type == 'beta'",
+                 numericInput("prior_rho_param", "Beta α Parameter:", value = 2, min = 0.5, step = 0.5),
+                 numericInput("prior_rho_param2", "Beta β Parameter:", value = 1, min = 0.5, step = 0.5),
+                 helpText("Beta(2,1): weakly favors high positive correlation. Beta(5,1): strongly favors high positive correlation. Beta(2,2): favors moderate positive correlation around 0.5.")
+               ),
                conditionalPanel(
                  condition = "input.prior_rho_type == 'lkj'",
                  numericInput("prior_rho_param", "LKJ η Parameter:", value = 2, min = 1, step = 0.5)
                ),
+               helpText("For informative priors assuming positive correlation (typical in oncology), use Uniform(0, 0.95) or Beta priors."),
                hr(),
                h3("Current Trial Parameters"),
                div(style = "background-color: #e8f4f8; padding: 10px; border-radius: 5px; margin-bottom: 15px;",
@@ -661,7 +682,8 @@ server <- function(input, output, session) {
         prior_tau_param_os = input$prior_tau_param_os,
         prior_tau_param_pfs = input$prior_tau_param_pfs,
         prior_rho_type = input$prior_rho_type,
-        prior_rho_param = ifelse(input$prior_rho_type == "lkj", input$prior_rho_param, 2)
+        prior_rho_param = ifelse(input$prior_rho_type %in% c("lkj", "beta"), input$prior_rho_param, 2),
+        prior_rho_param2 = ifelse(input$prior_rho_type == "beta", input$prior_rho_param2, 1)
       )
       
       incProgress(0.2, detail = "Starting MCMC sampling")
@@ -690,6 +712,10 @@ server <- function(input, output, session) {
         }
         if (input$prior_rho_type == "uniform") {
           cat("  ρ ~ Uniform(-0.95, 0.95)\n")
+        } else if (input$prior_rho_type == "uniform_positive") {
+          cat("  ρ ~ Uniform(0, 0.95) [positive only]\n")
+        } else if (input$prior_rho_type == "beta") {
+          cat("  ρ ~ Beta(", input$prior_rho_param, ", ", input$prior_rho_param2, ") [positive only]\n", sep="")
         } else {
           cat("  ρ ~ LKJ-inspired(η=", input$prior_rho_param, ")\n", sep="")
         }
