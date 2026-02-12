@@ -1,6 +1,22 @@
 # Bayesian Probability of Success (PoS) Simulation - R Shiny Application
 
-## 🎯 LATEST: Fisher z-Transformation for Correlation (2026-02-12 22:20) 🔥
+## 🚨 CRITICAL BUG FIX: Fisher z Prior Parameters (2026-02-12 22:40) 🚨
+
+**URGENT UPDATE - Parameter Passing Bug Fixed!**  
+- **Problem:** Fisher z was passing **wrong prior parameters** (hardcoded Normal(2,1) instead of UI values)  
+- **Impact:** ρ estimated at ~0.90 instead of correct ~0.65!  
+- **Root Cause:** Lines 704-705 used `ifelse` that ignored Fisher z UI inputs  
+- **Fix:** Now passes UI parameters directly ✅  
+- **Bonus Fix:** Added `rho_out` to generated quantities (now extractable) ✅  
+
+📖 **READ IMMEDIATELY:** [CRITICAL_FISHER_Z_BUG_FIX.md](CRITICAL_FISHER_Z_BUG_FIX.md) - English  
+📖 **立即阅读:** [CRITICAL_FISHER_Z_BUG_FIX_CN.md](CRITICAL_FISHER_Z_BUG_FIX_CN.md) - 中文详细说明  
+
+**Fisher z NOW works correctly with UI defaults (μ_z=0, σ_z=1.5)!**
+
+---
+
+## 🎯 Fisher z-Transformation for Correlation (2026-02-12 22:20) 🔥
 
 **BREAKTHROUGH FIX - Based on Expert Analysis (ChatGPT)**  
 - **Problem:** Systematic underestimation of ρ (true=0.70 → estimated=0.16-0.30)  
