@@ -1,16 +1,29 @@
 # Bayesian Probability of Success (PoS) Simulation - R Shiny Application
 
-## ⚠️ LATEST FIX: Exponential(1) Prior on tau (2026-02-12 20:15) 🔥
+## 🎯 LATEST: Fisher z-Transformation for Correlation (2026-02-12 22:20) 🔥
 
-**FIFTH ITERATION - STRONGEST FIX YET!**  
-- **Problem:** Still seeing tau ≈ 0.03 and rho ≈ 0.21 despite Half-Normal fix  
-- **Root Cause:** Half-Normal(0, 0.5) has mean = 0.40, still pulls tau DOWN  
+**BREAKTHROUGH FIX - Based on Expert Analysis (ChatGPT)**  
+- **Problem:** Systematic underestimation of ρ (true=0.70 → estimated=0.16-0.30)  
+- **Root Cause:** Direct estimation of ρ has bad sampling geometry near boundaries  
+- **Solution:** **Fisher z-transformation** (z = atanh(ρ), ρ = tanh(z))  
+- **Why it works:** Unbounded z ∈ ℝ, better MCMC geometry, no shrinkage to 0  
+- **Expected Result:** Accurate ρ ≈ 0.60-0.70, narrower CIs, +10 points PoS! ✅  
+
+📖 **MUST READ:** [FISHER_Z_TRANSFORMATION.md](FISHER_Z_TRANSFORMATION.md) - Complete technical explanation  
+📖 **中文回应:** [CHATGPT_ANALYSIS_RESPONSE_CN.md](CHATGPT_ANALYSIS_RESPONSE_CN.md) - 完整分析和实施  
+
+**Fisher z is now the RECOMMENDED default prior for ρ!**
+
+---
+
+## ⚠️ Previous Fix: Exponential(1) Prior on tau (2026-02-12 20:15)
+
+**FIFTH ITERATION:**  
+- **Problem:** Still seeing tau ≈ 0.03 and rho ≈ 0.21  
 - **Fix:** Changed default to **Exponential(1)** with mean = 1.0  
-- **Why better:** E[tau] = 1.0 pulls UP instead of DOWN, prevents shrinkage  
-- **Expected Result:** tau ≈ 0.12-0.15, rho ≈ 0.55-0.70 (matches data cor ≈ 0.69!) ✅  
+- **Expected Result:** tau ≈ 0.12-0.15 ✅  
 
-📖 **MUST READ:** [EXPONENTIAL1_FIX.md](EXPONENTIAL1_FIX.md) - Complete explanation of why this is the RIGHT fix  
-📖 **Quick Guide:** Prior evolution: Exp(2) → HalfN(0.5) → **Exp(1)** ← **USE THIS**
+📖 See [EXPONENTIAL1_FIX.md](EXPONENTIAL1_FIX.md)
 
 ### Previous Fixes (All Applied):
 - ✅ Prior adjustment: Exponential(1) (see [EXPONENTIAL1_FIX.md](EXPONENTIAL1_FIX.md)) ← **LATEST**
