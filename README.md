@@ -21,6 +21,26 @@
 
 ---
 
+## 🔍 FREQUENTLY ASKED QUESTION
+
+### Q: Does the model use current trial's OS (even if not mature)?
+
+**YES!** The model DOES incorporate the current trial's Overall Survival (OS) data, even if it's immature.
+
+**How?** Through the standard error (SE):
+- Immature OS → Larger SE → Lower weight in Bayesian inference
+- Model automatically combines: Historical data + Current OS (immature) + Current PFS (via correlation ρ)
+- Even with few OS events, the data contributes information (weighted by precision = 1/SE²)
+
+**Why include immature OS?**
+- Prevents over-reliance on PFS alone
+- Provides reality check on PFS-OS relationship
+- Bayesian optimality: Use ALL available data, weighted appropriately
+
+📖 **COMPLETE ANSWER:** [FAQ_CURRENT_TRIAL_OS.md](FAQ_CURRENT_TRIAL_OS.md) - Detailed explanation with examples
+
+---
+
 ## Overview
 
 This comprehensive R Shiny application provides an interactive interface for running full Bayesian Probability of Success (PoS) analysis for clinical trials using Overall Survival (OS) and Progression-Free Survival (PFS) data. The application is based on the existing `bayesian_pos_fixed current rho` code and implements a hierarchical Bayesian model with log-transformed hazard ratios.

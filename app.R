@@ -369,7 +369,14 @@ ui <- navbarPage(
                ),
                hr(),
                h3("Current Trial Parameters"),
+               div(style = "background-color: #e8f4f8; padding: 10px; border-radius: 5px; margin-bottom: 15px;",
+                   p(style = "margin: 0;", 
+                     strong("ℹ️ Note:"), 
+                     "Both OS and PFS interim data are used, even if OS is immature. ",
+                     "Large SE for immature OS appropriately reduces its weight in the Bayesian model.")
+               ),
                numericInput("loghr_os_interim", "Interim log(HR) for OS:", value = -0.35, step = 0.01),
+               helpText("OS can be immature - increase SE to reflect uncertainty from fewer events"),
                numericInput("se_loghr_os_interim", "SE of log(HR) for OS:", value = 0.25, min = 0.01, step = 0.01),
                numericInput("loghr_pfs_interim", "Interim log(HR) for PFS:", value = -0.48, step = 0.01),
                numericInput("se_loghr_pfs_interim", "SE of log(HR) for PFS:", value = 0.12, min = 0.01, step = 0.01),
@@ -529,6 +536,38 @@ ui <- navbarPage(
                     p(HTML("📖 <strong>For detailed explanation:</strong> See 
                           <a href='https://github.com/JinjieChen19/POS-simulation/blob/main/UNDERSTANDING_CORRELATION.md' target='_blank'>UNDERSTANDING_CORRELATION.md</a> 
                           in the repository.")),
+                    
+                    h3("🔍 FAQ: Does the Model Use Immature OS?"),
+                    div(style="background-color: #e8f4f8; padding: 15px; border-left: 4px solid #0066cc; margin: 15px 0;",
+                      h4(style="margin-top: 0;", "Q: Do we incorporate current trial's OS (even if not mature)?"),
+                      p(HTML("<strong style='color: #0066cc;'>YES!</strong> The model DOES use the current trial's OS, even if immature.")),
+                      
+                      p(strong("How it works:")),
+                      tags$ul(
+                        tags$li(HTML("Model uses <strong>BOTH</strong> OS and PFS from current trial")),
+                        tags$li(HTML("Immature OS has <strong>larger SE</strong> (fewer events = more uncertainty)")),
+                        tags$li(HTML("Bayesian inference automatically <strong>down-weights</strong> imprecise data (via SE)")),
+                        tags$li(HTML("Even with few OS events, data still contributes (weight ∝ 1/SE²)"))
+                      ),
+                      
+                      p(strong("Example:")),
+                      tags$ul(
+                        tags$li(HTML("50 OS events → SE ≈ 0.30 → contributes ~15% of posterior")),
+                        tags$li(HTML("100 OS events → SE ≈ 0.20 → contributes ~30% of posterior")),
+                        tags$li(HTML("200 OS events → SE ≈ 0.15 → contributes ~45% of posterior"))
+                      ),
+                      
+                      p(strong("Why include immature OS?")),
+                      tags$ul(
+                        tags$li("Prevents over-reliance on PFS alone"),
+                        tags$li("Provides reality check on PFS-OS relationship"),
+                        tags$li("Even weak signal better than ignoring OS completely"),
+                        tags$li("Bayesian optimality: use ALL data, weighted by precision")
+                      ),
+                      
+                      p(HTML("📖 <strong>Complete answer with examples:</strong> 
+                            <a href='https://github.com/JinjieChen19/POS-simulation/blob/main/FAQ_CURRENT_TRIAL_OS.md' target='_blank'>FAQ_CURRENT_TRIAL_OS.md</a>"))
+                    ),
                     
                     h3("Technical Notes"),
                     tags$ul(
