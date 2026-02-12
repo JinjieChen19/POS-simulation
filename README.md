@@ -173,6 +173,7 @@ POS-simulation/
 ├── app.R                              # Main Shiny application
 ├── README.md                          # This file
 ├── bayesian_pos_fixed current rho     # Original R script (reference)
+│                                      # Note: filename contains spaces
 └── [other project files]
 ```
 

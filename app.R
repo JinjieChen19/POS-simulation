@@ -534,9 +534,9 @@ server <- function(input, output, session) {
     tibble(theta_os = theta_os_samples) %>%
       ggplot(aes(x = theta_os)) +
       geom_histogram(bins = 50, fill = "#4682B4", alpha = 0.7, aes(y = after_stat(density))) +
-      geom_density(color = "#00008B", size = 1) +
-      geom_vline(aes(xintercept = mean(theta_os)), color = "#00008B", linetype = "dashed", size = 1) +
-      geom_vline(aes(xintercept = results$summary$target), color = "red", linetype = "dashed", size = 1) +
+      geom_density(color = "#00008B", linewidth = 1) +
+      geom_vline(aes(xintercept = mean(theta_os)), color = "#00008B", linetype = "dashed", linewidth = 1) +
+      geom_vline(aes(xintercept = results$summary$target), color = "red", linetype = "dashed", linewidth = 1) +
       labs(title = "Posterior: OS log(HR) - Current Trial",
            subtitle = "Dashed blue = Posterior mean, Dashed red = Target",
            x = "log(HR)", y = "Density") +
@@ -552,9 +552,9 @@ server <- function(input, output, session) {
     tibble(hr_os = exp(theta_os_samples)) %>%
       ggplot(aes(x = hr_os)) +
       geom_histogram(bins = 50, fill = "#3CB371", alpha = 0.7, aes(y = after_stat(density))) +
-      geom_density(color = "#228B22", size = 1) +
-      geom_vline(aes(xintercept = 1), color = "black", linetype = "dotted", size = 1) +
-      geom_vline(aes(xintercept = exp(results$summary$target)), color = "red", linetype = "dashed", size = 1) +
+      geom_density(color = "#228B22", linewidth = 1) +
+      geom_vline(aes(xintercept = 1), color = "black", linetype = "dotted", linewidth = 1) +
+      geom_vline(aes(xintercept = exp(results$summary$target)), color = "red", linetype = "dashed", linewidth = 1) +
       labs(title = "Posterior: OS Hazard Ratio",
            subtitle = "Dotted black = No effect (HR=1), Dashed red = Target",
            x = "HR", y = "Density") +

@@ -1,0 +1,29 @@
+# R files
+.Rhistory
+.RData
+.Rproj.user
+*.Rproj
+
+# Shiny cache
+rsconnect/
+
+# rstan compiled models
+*.rds
+
+# Output files
+*.pdf
+*.png
+*.html
+
+# Temporary files
+*~
+*.swp
+*.tmp
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
