@@ -25,23 +25,41 @@ rstan_options(auto_write = TRUE)
 prepare_historical_loghr_data <- function() {
   set.seed(20260211)
   
-  # Generate more realistic data with moderate between-trial correlation
-  # Target: between-trial cor ~ 0.6, similar to within-trial correlations
+  # Generate realistic data with moderate between-trial correlation
+  # Target: between-trial cor ~ 0.65, matching typical within-trial correlations
   
-  # First, generate PFS values
   n_trials <- 27
-  loghr_pfs <- rnorm(n_trials, mean = -0.45, sd = 0.06)
   
-  # Generate OS values with desired correlation to PFS
-  # Using conditional distribution: OS | PFS
+  # Use Cholesky decomposition for precise correlation control
+  # Define population parameters
+  mu_pfs <- -0.45
+  mu_os <- -0.30
+  sd_pfs <- 0.053  # Between-trial SD for PFS
+  sd_os <- 0.046   # Between-trial SD for OS
   target_cor <- 0.65  # Target between-trial correlation
   
-  # Generate correlated OS values
-  loghr_os <- -0.30 + 0.7 * (loghr_pfs + 0.45) + rnorm(n_trials, mean = 0, sd = 0.035)
+  # Create covariance matrix
+  cov_matrix <- matrix(c(
+    sd_pfs^2, target_cor * sd_pfs * sd_os,
+    target_cor * sd_pfs * sd_os, sd_os^2
+  ), nrow = 2, byrow = TRUE)
   
-  # Clip to reasonable ranges
-  loghr_pfs <- pmax(pmin(loghr_pfs, -0.20), -0.65)
-  loghr_os <- pmax(pmin(loghr_os, -0.10), -0.45)
+  # Cholesky decomposition
+  L <- chol(cov_matrix)
+  
+  # Generate independent standard normal variates
+  Z <- matrix(rnorm(2 * n_trials), nrow = 2, ncol = n_trials)
+  
+  # Transform to correlated variates
+  Y <- t(L) %*% Z
+  
+  # Add means
+  loghr_pfs <- mu_pfs + Y[1, ]
+  loghr_os <- mu_os + Y[2, ]
+  
+  # Ensure reasonable ranges (but don't clip too aggressively)
+  loghr_pfs <- pmax(pmin(loghr_pfs, -0.30), -0.60)
+  loghr_os <- pmax(pmin(loghr_os, -0.15), -0.45)
   
   tibble(
     trial_id = paste0("ICB-HIST-", sprintf("%02d", 1:27)),
@@ -416,7 +434,7 @@ ui <- navbarPage(
            fluidRow(
              column(12,
                     h3("Historical Trials Data"),
-                    p("The model uses data from 10 historical immunotherapy trials:"),
+                    p("The model uses data from 27 historical immunotherapy trials:"),
                     DTOutput("historical_data_table"),
                     hr(),
                     h3("Summary Statistics"),
@@ -557,8 +575,15 @@ server <- function(input, output, session) {
     cat("OS log(HR) - Mean:", round(mean(historical_data$loghr_os), 3), 
         "SD:", round(sd(historical_data$loghr_os), 3), "\n")
     cat("PFS log(HR) - Mean:", round(mean(historical_data$loghr_pfs), 3), 
-        "SD:", round(sd(historical_data$loghr_pfs), 3), "\n")
-    cat("Correlation - Mean:", round(mean(historical_data$corr_pfs_os), 3), "\n")
+        "SD:", round(sd(historical_data$loghr_pfs), 3), "\n\n")
+    
+    # Calculate and display between-trial correlation
+    between_trial_cor <- cor(historical_data$loghr_pfs, historical_data$loghr_os)
+    cat("CORRELATIONS:\n")
+    cat("  Between-trial cor(PFS, OS): ", round(between_trial_cor, 3), 
+        " <- This is what the model learns as rho\n")
+    cat("  Within-trial cor (average): ", round(mean(historical_data$corr_pfs_os), 3), 
+        " <- Patient-level correlation within trials\n")
   })
   
   # Run model
