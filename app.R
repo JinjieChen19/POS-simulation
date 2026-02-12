@@ -79,7 +79,7 @@ prepare_historical_loghr_data <- function() {
 build_stan_model_improved <- function(prior_mu_os_mean = -0.35, prior_mu_os_sd = 1.0,
                                       prior_mu_pfs_mean = -0.45, prior_mu_pfs_sd = 1.0,
                                       prior_tau_type = "exponential", prior_tau_param_os = 1, prior_tau_param_pfs = 1,
-                                      prior_rho_type = "uniform", prior_rho_param = 2, prior_rho_param2 = 1) {
+                                      prior_rho_type = "fisher_z", prior_rho_param = 0, prior_rho_param2 = 1.5) {
   
   # Build tau priors based on selected distribution
   if (prior_tau_type == "exponential") {
@@ -91,21 +91,31 @@ build_stan_model_improved <- function(prior_mu_os_mean = -0.35, prior_mu_os_sd =
   }
   
   # Build rho prior based on selected distribution
-  if (prior_rho_type == "uniform") {
+  if (prior_rho_type == "fisher_z") {
+    # Fisher z-transformation: z = atanh(ρ), ρ = tanh(z)
+    # This provides better sampling geometry and reduces shrinkage to 0
+    rho_declaration <- "real z_rho;  // Fisher z-transformed correlation"
+    rho_transform <- "  real rho = tanh(z_rho);  // Back-transform to correlation"
+    rho_prior <- paste0("z_rho ~ normal(", prior_rho_param, ", ", prior_rho_param2, ");  // Prior on Fisher z scale")
+  } else if (prior_rho_type == "uniform") {
     rho_declaration <- "real<lower=-0.95, upper=0.95> rho;"
+    rho_transform <- ""
     rho_prior <- "rho ~ uniform(-0.95, 0.95);"
   } else if (prior_rho_type == "uniform_positive") {
     # Informative prior assuming positive correlation
     rho_declaration <- "real<lower=0, upper=0.95> rho;"
+    rho_transform <- ""
     rho_prior <- "rho ~ uniform(0, 0.95);"
   } else if (prior_rho_type == "beta") {
     # Beta prior on (0, 1) for positive correlation
     # prior_rho_param is alpha, second param (beta_param) is beta
     rho_declaration <- "real<lower=0, upper=1> rho;"
+    rho_transform <- ""
     rho_prior <- paste0("rho ~ beta(", prior_rho_param, ", ", prior_rho_param2, ");")
   } else if (prior_rho_type == "lkj") {
     # For LKJ, we need to work with correlation matrix
     rho_declaration <- "real<lower=-1, upper=1> rho;"
+    rho_transform <- ""
     # LKJ approximation for bivariate case - we'll use a transformed beta distribution
     # This is a simplification; full LKJ would require matrix operations
     rho_prior <- paste0("// LKJ-inspired prior on correlation\n  ",
@@ -140,6 +150,8 @@ parameters {
 }
 
 transformed parameters {
+  ", rho_transform, "
+  
   // Between-trial covariance matrix
   matrix[2, 2] Sigma;
   Sigma[1, 1] = tau_os^2;
@@ -372,11 +384,18 @@ ui <- navbarPage(
                helpText("For Exponential(rate): mean = 1/rate. RECOMMENDED: rate=1 (mean=1.0) to avoid over-shrinkage. For Half-Normal(SD): use SD >= 1.0."),
                h4("Correlation"),
                selectInput("prior_rho_type", "Distribution:",
-                          choices = c("Uniform(-0.95, 0.95)" = "uniform", 
+                          choices = c("Fisher z-transform (RECOMMENDED)" = "fisher_z",
+                                    "Uniform(-0.95, 0.95)" = "uniform", 
                                     "Uniform(0, 0.95) - Positive Only" = "uniform_positive",
                                     "Beta(α, β) - Positive Only" = "beta",
                                     "LKJ" = "lkj"),
-                          selected = "uniform"),
+                          selected = "fisher_z"),
+               conditionalPanel(
+                 condition = "input.prior_rho_type == 'fisher_z'",
+                 numericInput("prior_rho_param", "z Prior Mean (μ_z):", value = 0, step = 0.1),
+                 numericInput("prior_rho_param2", "z Prior SD (σ_z):", value = 1.5, min = 0.1, step = 0.1),
+                 helpText("Fisher z-transformation: z = atanh(ρ), ρ = tanh(z). This provides better sampling geometry and reduces shrinkage toward 0. Recommended: μ_z=0, σ_z=1.5 (weakly informative). For high ρ: μ_z=atanh(0.7)≈0.87, σ_z=0.5.")
+               ),
                conditionalPanel(
                  condition = "input.prior_rho_type == 'beta'",
                  numericInput("prior_rho_param", "Beta α Parameter:", value = 2, min = 0.5, step = 0.5),
@@ -387,7 +406,7 @@ ui <- navbarPage(
                  condition = "input.prior_rho_type == 'lkj'",
                  numericInput("prior_rho_param", "LKJ η Parameter:", value = 2, min = 1, step = 0.5)
                ),
-               helpText("For informative priors assuming positive correlation (typical in oncology), use Uniform(0, 0.95) or Beta priors."),
+               helpText("Fisher z-transformation (recommended) improves estimation and reduces systematic underestimation. For positive-only priors, use Uniform(0, 0.95) or Beta."),
                hr(),
                h3("Current Trial Parameters"),
                div(style = "background-color: #e8f4f8; padding: 10px; border-radius: 5px; margin-bottom: 15px;",
