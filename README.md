@@ -223,12 +223,42 @@ Even with **low between-trial correlation (ρ ≈ 0.1-0.3)**, historical data pr
 
 ## Troubleshooting
 
+### 🔧 Seeing ρ ≈ 0.14 Instead of Expected ρ ≈ 0.60?
+
+**If you're getting low ρ estimates (0.1-0.2) when you expect ~0.6:**
+
+📋 **[ANSWER_WHY_STILL_014.md](ANSWER_WHY_STILL_014.md)** - START HERE
+- 30-second quick fix
+- Why this happens
+- Step-by-step verification
+- Expected vs. actual values
+
+🔍 **[TROUBLESHOOTING_RHO.md](TROUBLESHOOTING_RHO.md)** - Comprehensive Guide
+- Complete troubleshooting checklist
+- Diagnostic steps
+- Common issues and solutions
+
+🧪 **test_data_generation.R** - Verification Script
+- Run to verify data generation works correctly
+- Expected output: correlation ≈ 0.60
+
+**Quick Fix (Most Common Cause - Browser Cache):**
+```r
+# 1. Stop Shiny app
+# 2. Restart R (Session → Restart R)
+# 3. Clear browser cache (Ctrl+Shift+Delete)
+# 4. Re-run app
+shiny::runApp("app.R")
+# 5. Check Data tab - should show "Between-trial cor: 0.619"
+```
+
 ### Common Issues
 
 1. **Model compilation errors**: Ensure rstan is properly installed and configured
 2. **Divergent transitions**: Adjust adapt_delta (increase toward 0.999) if warnings appear
 3. **Low ESS**: Increase number of iterations if ESS warnings appear
 4. **Memory issues**: Reduce number of iterations or chains if memory is limited
+5. **Low ρ estimates**: See troubleshooting guides above (likely browser cache issue)
 
 ### Performance Tips
 
