@@ -25,27 +25,33 @@ rstan_options(auto_write = TRUE)
 prepare_historical_loghr_data <- function() {
   set.seed(20260211)
   
+  # Generate more realistic data with moderate between-trial correlation
+  # Target: between-trial cor ~ 0.6, similar to within-trial correlations
+  
+  # First, generate PFS values
+  n_trials <- 27
+  loghr_pfs <- rnorm(n_trials, mean = -0.45, sd = 0.06)
+  
+  # Generate OS values with desired correlation to PFS
+  # Using conditional distribution: OS | PFS
+  target_cor <- 0.65  # Target between-trial correlation
+  
+  # Generate correlated OS values
+  loghr_os <- -0.30 + 0.7 * (loghr_pfs + 0.45) + rnorm(n_trials, mean = 0, sd = 0.035)
+  
+  # Clip to reasonable ranges
+  loghr_pfs <- pmax(pmin(loghr_pfs, -0.20), -0.65)
+  loghr_os <- pmax(pmin(loghr_os, -0.10), -0.45)
+  
   tibble(
     trial_id = paste0("ICB-HIST-", sprintf("%02d", 1:27)),
     cancer_type = rep(c("Melanoma", "NSCLC", "Renal", "HCC", "Bladder", "Gastric"), length.out = 27),
-    n_patients = c(150, 200, 120, 180, 95, 160, 140, 110, 130, 170,
-                   165, 185, 125, 155, 135, 175, 145, 115, 190, 105,
-                   142, 168, 128, 152, 138, 162, 148),
-    loghr_pfs = c(-0.42, -0.38, -0.51, -0.40, -0.55, -0.47, -0.53, -0.35, -0.48, -0.44,
-                  -0.46, -0.41, -0.49, -0.43, -0.52, -0.39, -0.45, -0.37, -0.50, -0.36,
-                  -0.47, -0.44, -0.48, -0.42, -0.51, -0.40, -0.46),
-    se_loghr_pfs = c(0.15, 0.13, 0.16, 0.14, 0.17, 0.15, 0.18, 0.14, 0.15, 0.13,
-                     0.16, 0.14, 0.15, 0.13, 0.17, 0.14, 0.16, 0.15, 0.18, 0.13,
-                     0.14, 0.15, 0.16, 0.14, 0.17, 0.15, 0.16),
-    loghr_os = c(-0.28, -0.24, -0.35, -0.26, -0.38, -0.32, -0.36, -0.20, -0.31, -0.29,
-                 -0.30, -0.25, -0.33, -0.27, -0.37, -0.23, -0.29, -0.22, -0.34, -0.21,
-                 -0.30, -0.28, -0.32, -0.26, -0.35, -0.25, -0.31),
-    se_loghr_os = c(0.18, 0.16, 0.20, 0.18, 0.21, 0.19, 0.22, 0.17, 0.19, 0.17,
-                    0.19, 0.17, 0.20, 0.18, 0.21, 0.17, 0.19, 0.18, 0.22, 0.16,
-                    0.18, 0.19, 0.20, 0.17, 0.21, 0.18, 0.19),
-    corr_pfs_os = c(0.65, 0.70, 0.68, 0.72, 0.66, 0.71, 0.69, 0.73, 0.67, 0.70,
-                    0.69, 0.71, 0.68, 0.70, 0.67, 0.72, 0.68, 0.71, 0.66, 0.73,
-                    0.69, 0.70, 0.68, 0.71, 0.67, 0.70, 0.69)
+    n_patients = sample(95:200, 27, replace = TRUE),
+    loghr_pfs = loghr_pfs,
+    se_loghr_pfs = runif(27, 0.12, 0.18),
+    loghr_os = loghr_os,
+    se_loghr_os = runif(27, 0.16, 0.22),
+    corr_pfs_os = runif(27, 0.60, 0.75)  # Within-trial correlations
   ) %>%
     mutate(cov_pfs_os = corr_pfs_os * se_loghr_pfs * se_loghr_os)
 }
