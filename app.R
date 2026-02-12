@@ -215,6 +215,9 @@ generated quantities {
   
   // Probability of Success indicator
   int pos_indicator = (theta_os_post < loghr_os_target) ? 1 : 0;
+  
+  // Output rho for all prior types (ensures it's always extractable)
+  real rho_out = ", ifelse(prior_rho_type == "fisher_z", "tanh(z_rho)", "rho"), ";
 }
 ")
   return(stan_code)
@@ -701,8 +704,8 @@ server <- function(input, output, session) {
         prior_tau_param_os = input$prior_tau_param_os,
         prior_tau_param_pfs = input$prior_tau_param_pfs,
         prior_rho_type = input$prior_rho_type,
-        prior_rho_param = ifelse(input$prior_rho_type %in% c("lkj", "beta"), input$prior_rho_param, 2),
-        prior_rho_param2 = ifelse(input$prior_rho_type == "beta", input$prior_rho_param2, 1)
+        prior_rho_param = input$prior_rho_param,    # Pass UI value directly
+        prior_rho_param2 = input$prior_rho_param2   # Pass UI value directly
       )
       
       incProgress(0.2, detail = "Starting MCMC sampling")
