@@ -26,21 +26,59 @@ prepare_historical_loghr_data <- function() {
   set.seed(20260211)
   
   tibble(
-    trial_id = paste0("ICB-HIST-", sprintf("%02d", 1:10)),
-    cancer_type = rep(c("Melanoma", "NSCLC", "Renal", "HCC"), length.out = 10),
-    n_patients = c(150, 200, 120, 180, 95, 160, 140, 110, 130, 170),
-    loghr_pfs = c(-0.42, -0.38, -0.51, -0.40, -0.55, -0.47, -0.53, -0.35, -0.48, -0.44),
-    se_loghr_pfs = c(0.15, 0.13, 0.16, 0.14, 0.17, 0.15, 0.18, 0.14, 0.15, 0.13),
-    loghr_os = c(-0.28, -0.24, -0.35, -0.26, -0.38, -0.32, -0.36, -0.20, -0.31, -0.29),
-    se_loghr_os = c(0.18, 0.16, 0.20, 0.18, 0.21, 0.19, 0.22, 0.17, 0.19, 0.17),
-    corr_pfs_os = c(0.65, 0.70, 0.68, 0.72, 0.66, 0.71, 0.69, 0.73, 0.67, 0.70)
+    trial_id = paste0("ICB-HIST-", sprintf("%02d", 1:27)),
+    cancer_type = rep(c("Melanoma", "NSCLC", "Renal", "HCC", "Bladder", "Gastric"), length.out = 27),
+    n_patients = c(150, 200, 120, 180, 95, 160, 140, 110, 130, 170,
+                   165, 185, 125, 155, 135, 175, 145, 115, 190, 105,
+                   142, 168, 128, 152, 138, 162, 148),
+    loghr_pfs = c(-0.42, -0.38, -0.51, -0.40, -0.55, -0.47, -0.53, -0.35, -0.48, -0.44,
+                  -0.46, -0.41, -0.49, -0.43, -0.52, -0.39, -0.45, -0.37, -0.50, -0.36,
+                  -0.47, -0.44, -0.48, -0.42, -0.51, -0.40, -0.46),
+    se_loghr_pfs = c(0.15, 0.13, 0.16, 0.14, 0.17, 0.15, 0.18, 0.14, 0.15, 0.13,
+                     0.16, 0.14, 0.15, 0.13, 0.17, 0.14, 0.16, 0.15, 0.18, 0.13,
+                     0.14, 0.15, 0.16, 0.14, 0.17, 0.15, 0.16),
+    loghr_os = c(-0.28, -0.24, -0.35, -0.26, -0.38, -0.32, -0.36, -0.20, -0.31, -0.29,
+                 -0.30, -0.25, -0.33, -0.27, -0.37, -0.23, -0.29, -0.22, -0.34, -0.21,
+                 -0.30, -0.28, -0.32, -0.26, -0.35, -0.25, -0.31),
+    se_loghr_os = c(0.18, 0.16, 0.20, 0.18, 0.21, 0.19, 0.22, 0.17, 0.19, 0.17,
+                    0.19, 0.17, 0.20, 0.18, 0.21, 0.17, 0.19, 0.18, 0.22, 0.16,
+                    0.18, 0.19, 0.20, 0.17, 0.21, 0.18, 0.19),
+    corr_pfs_os = c(0.65, 0.70, 0.68, 0.72, 0.66, 0.71, 0.69, 0.73, 0.67, 0.70,
+                    0.69, 0.71, 0.68, 0.70, 0.67, 0.72, 0.68, 0.71, 0.66, 0.73,
+                    0.69, 0.70, 0.68, 0.71, 0.67, 0.70, 0.69)
   ) %>%
     mutate(cov_pfs_os = corr_pfs_os * se_loghr_pfs * se_loghr_os)
 }
 
-# Stan model builder
-build_stan_model_improved <- function() {
-  stan_code <- "
+# Stan model builder with flexible priors
+build_stan_model_improved <- function(prior_mu_os_mean = -0.35, prior_mu_os_sd = 1.0,
+                                      prior_mu_pfs_mean = -0.45, prior_mu_pfs_sd = 1.0,
+                                      prior_tau_type = "exponential", prior_tau_param_os = 2, prior_tau_param_pfs = 2,
+                                      prior_rho_type = "uniform", prior_rho_param = 2) {
+  
+  # Build tau priors based on selected distribution
+  if (prior_tau_type == "exponential") {
+    tau_prior_os <- paste0("tau_os ~ exponential(", prior_tau_param_os, ");")
+    tau_prior_pfs <- paste0("tau_pfs ~ exponential(", prior_tau_param_pfs, ");")
+  } else if (prior_tau_type == "half_normal") {
+    tau_prior_os <- paste0("tau_os ~ normal(0, ", prior_tau_param_os, ");")
+    tau_prior_pfs <- paste0("tau_pfs ~ normal(0, ", prior_tau_param_pfs, ");")
+  }
+  
+  # Build rho prior based on selected distribution
+  if (prior_rho_type == "uniform") {
+    rho_declaration <- "real<lower=-0.95, upper=0.95> rho;"
+    rho_prior <- "rho ~ uniform(-0.95, 0.95);"
+  } else if (prior_rho_type == "lkj") {
+    # For LKJ, we need to work with correlation matrix
+    rho_declaration <- "real<lower=-1, upper=1> rho;"
+    # LKJ approximation for bivariate case - we'll use a transformed beta distribution
+    # This is a simplification; full LKJ would require matrix operations
+    rho_prior <- paste0("// LKJ-inspired prior on correlation\n  ",
+                       "target += (", prior_rho_param, " - 1) * log(1 - rho^2);")
+  }
+  
+  stan_code <- paste0("
 data {
   int<lower=1> K;                           // Number of historical trials
   vector[2] y_hist[K];                      // Observed log(HR) pairs
@@ -60,7 +98,7 @@ parameters {
   real<lower=0.001> tau_pfs;
   
   // Correlation
-  real<lower=-0.95, upper=0.95> rho;
+  ", rho_declaration, "
   
   // Non-centered parameterization for random effects
   vector[2] z_hist[K];                      // Standardized random effects
@@ -92,16 +130,16 @@ transformed parameters {
 model {
   // ========== PRIORS ==========
   
-  // Population means: weakly informative
-  mu_os ~ normal(-0.35, 1.0);
-  mu_pfs ~ normal(-0.45, 1.0);
+  // Population means: user-specified
+  mu_os ~ normal(", prior_mu_os_mean, ", ", prior_mu_os_sd, ");
+  mu_pfs ~ normal(", prior_mu_pfs_mean, ", ", prior_mu_pfs_sd, ");
   
-  // Between-trial heterogeneity: exponential (more stable than normal)
-  tau_os ~ exponential(2);
-  tau_pfs ~ exponential(2);
+  // Between-trial heterogeneity: user-specified
+  ", tau_prior_os, "
+  ", tau_prior_pfs, "
   
-  // Correlation: uniform
-  rho ~ uniform(-0.95, 0.95);
+  // Correlation: user-specified
+  ", rho_prior, "
   
   // Non-centered parameters: standard normal
   for (k in 1:K) {
@@ -132,7 +170,7 @@ generated quantities {
   // Probability of Success indicator
   int pos_indicator = (theta_os_post < loghr_os_target) ? 1 : 0;
 }
-"
+")
   return(stan_code)
 }
 
@@ -201,21 +239,22 @@ ui <- navbarPage(
                     helpText("where \\(j = 1\\) represents OS and \\(j = 2\\) represents PFS"),
                     helpText("$$\\theta_k \\sim N(\\mu, \\Sigma)$$"),
                     
-                    h4("Prior Specifications"),
+                    h4("Default Prior Specifications (Customizable)"),
+                    p("The following priors can be adjusted in the 'Run Model' tab:"),
                     tags$ul(
                       tags$li(HTML("<strong>Population means:</strong>")),
                       tags$ul(
-                        tags$li(HTML("μ<sub>OS</sub> ~ N(-0.35, 1.0)")),
-                        tags$li(HTML("μ<sub>PFS</sub> ~ N(-0.45, 1.0)"))
+                        tags$li(HTML("μ<sub>OS</sub> ~ N(-0.35, 1.0) [Mean and SD adjustable]")),
+                        tags$li(HTML("μ<sub>PFS</sub> ~ N(-0.45, 1.0) [Mean and SD adjustable]"))
                       ),
                       tags$li(HTML("<strong>Between-trial heterogeneity:</strong>")),
                       tags$ul(
-                        tags$li(HTML("τ<sub>OS</sub> ~ Exp(2)")),
-                        tags$li(HTML("τ<sub>PFS</sub> ~ Exp(2)"))
+                        tags$li(HTML("τ<sub>OS</sub> ~ Exp(2) or Half-Normal(0, σ) [Distribution and parameter adjustable]")),
+                        tags$li(HTML("τ<sub>PFS</sub> ~ Exp(2) or Half-Normal(0, σ) [Distribution and parameter adjustable]"))
                       ),
                       tags$li(HTML("<strong>Correlation:</strong>")),
                       tags$ul(
-                        tags$li(HTML("ρ ~ Uniform(-0.95, 0.95)"))
+                        tags$li(HTML("ρ ~ Uniform(-0.95, 0.95) or LKJ(η) [Distribution and parameter adjustable]"))
                       )
                     ),
                     
@@ -229,14 +268,24 @@ ui <- navbarPage(
                     
                     h4("Likelihood Structure"),
                     tags$ul(
-                      tags$li(HTML("<strong>Historical trials:</strong> Data from K completed trials inform the population parameters")),
+                      tags$li(HTML("<strong>Historical trials:</strong> Data from K completed trials inform the population parameters (default K=27)")),
                       tags$li(HTML("<strong>Current trial:</strong> Interim data from the ongoing trial, combined with historical information via Bayesian shrinkage"))
                     ),
                     
                     h4("Probability of Success (PoS)"),
                     p("The PoS is calculated as:"),
                     helpText("$$PoS = P(\\theta_{OS,current} < \\text{target} | \\text{data})$$"),
-                    p("This represents the posterior probability that the current trial's OS log(HR) will meet the success criterion.")
+                    p("This represents the posterior probability that the current trial's OS log(HR) will meet the success criterion."),
+                    
+                    h4("Customizable Features"),
+                    p(strong("New in this version:")),
+                    tags$ul(
+                      tags$li("Adjustable MCMC parameters (adapt_delta, max_treedepth)"),
+                      tags$li("27 historical trials for more robust estimation"),
+                      tags$li("Flexible prior distributions for all model parameters"),
+                      tags$li("Choice of Exponential or Half-Normal priors for heterogeneity"),
+                      tags$li("Choice of Uniform or LKJ priors for correlation")
+                    )
              )
            )
   ),
@@ -245,9 +294,32 @@ ui <- navbarPage(
   tabPanel("Run Model",
            sidebarLayout(
              sidebarPanel(
-               h3("Model Settings"),
+               h3("MCMC Settings"),
                numericInput("n_iter", "MCMC Iterations:", value = 4000, min = 1000, max = 10000, step = 500),
                numericInput("n_chains", "Number of Chains:", value = 4, min = 1, max = 8),
+               numericInput("adapt_delta", "Adapt Delta:", value = 0.99, min = 0.8, max = 0.9999, step = 0.01),
+               numericInput("max_treedepth", "Max Tree Depth:", value = 12, min = 10, max = 15, step = 1),
+               hr(),
+               h3("Prior Settings"),
+               h4("Population Means"),
+               numericInput("prior_mu_os_mean", "μ_OS Prior Mean:", value = -0.35, step = 0.05),
+               numericInput("prior_mu_os_sd", "μ_OS Prior SD:", value = 1.0, min = 0.1, step = 0.1),
+               numericInput("prior_mu_pfs_mean", "μ_PFS Prior Mean:", value = -0.45, step = 0.05),
+               numericInput("prior_mu_pfs_sd", "μ_PFS Prior SD:", value = 1.0, min = 0.1, step = 0.1),
+               h4("Between-Trial Heterogeneity"),
+               selectInput("prior_tau_type", "Distribution:",
+                          choices = c("Exponential" = "exponential", "Half-Normal" = "half_normal"),
+                          selected = "exponential"),
+               numericInput("prior_tau_param_os", "τ_OS Parameter:", value = 2, min = 0.1, step = 0.1),
+               numericInput("prior_tau_param_pfs", "τ_PFS Parameter:", value = 2, min = 0.1, step = 0.1),
+               h4("Correlation"),
+               selectInput("prior_rho_type", "Distribution:",
+                          choices = c("Uniform(-0.95, 0.95)" = "uniform", "LKJ" = "lkj"),
+                          selected = "uniform"),
+               conditionalPanel(
+                 condition = "input.prior_rho_type == 'lkj'",
+                 numericInput("prior_rho_param", "LKJ η Parameter:", value = 2, min = 1, step = 0.5)
+               ),
                hr(),
                h3("Current Trial Parameters"),
                numericInput("loghr_os_interim", "Interim log(HR) for OS:", value = -0.35, step = 0.01),
@@ -435,7 +507,19 @@ server <- function(input, output, session) {
     withProgress(message = 'Running Stan model...', value = 0, {
       
       incProgress(0.1, detail = "Compiling model")
-      stan_code <- build_stan_model_improved()
+      
+      # Build Stan model with user-specified priors
+      stan_code <- build_stan_model_improved(
+        prior_mu_os_mean = input$prior_mu_os_mean,
+        prior_mu_os_sd = input$prior_mu_os_sd,
+        prior_mu_pfs_mean = input$prior_mu_pfs_mean,
+        prior_mu_pfs_sd = input$prior_mu_pfs_sd,
+        prior_tau_type = input$prior_tau_type,
+        prior_tau_param_os = input$prior_tau_param_os,
+        prior_tau_param_pfs = input$prior_tau_param_pfs,
+        prior_rho_type = input$prior_rho_type,
+        prior_rho_param = ifelse(input$prior_rho_type == "lkj", input$prior_rho_param, 2)
+      )
       
       incProgress(0.2, detail = "Starting MCMC sampling")
       
@@ -449,9 +533,24 @@ server <- function(input, output, session) {
         cat("  Warmup:", input$n_iter/2, "\n")
         cat("  Sampling:", input$n_iter/2, "\n")
         cat("  Chains:", input$n_chains, "\n")
-        cat("  Adapt delta: 0.99\n")
-        cat("  Max treedepth: 12\n\n")
-        cat("Current trial parameters:\n")
+        cat("  Adapt delta:", input$adapt_delta, "\n")
+        cat("  Max treedepth:", input$max_treedepth, "\n\n")
+        cat("Prior settings:\n")
+        cat("  μ_OS ~ N(", input$prior_mu_os_mean, ", ", input$prior_mu_os_sd, ")\n", sep="")
+        cat("  μ_PFS ~ N(", input$prior_mu_pfs_mean, ", ", input$prior_mu_pfs_sd, ")\n", sep="")
+        if (input$prior_tau_type == "exponential") {
+          cat("  τ_OS ~ Exp(", input$prior_tau_param_os, ")\n", sep="")
+          cat("  τ_PFS ~ Exp(", input$prior_tau_param_pfs, ")\n", sep="")
+        } else {
+          cat("  τ_OS ~ Half-N(0, ", input$prior_tau_param_os, ")\n", sep="")
+          cat("  τ_PFS ~ Half-N(0, ", input$prior_tau_param_pfs, ")\n", sep="")
+        }
+        if (input$prior_rho_type == "uniform") {
+          cat("  ρ ~ Uniform(-0.95, 0.95)\n")
+        } else {
+          cat("  ρ ~ LKJ-inspired(η=", input$prior_rho_param, ")\n", sep="")
+        }
+        cat("\nCurrent trial parameters:\n")
         cat("  OS log(HR):", input$loghr_os_interim, "± SE:", input$se_loghr_os_interim, "\n")
         cat("  PFS log(HR):", input$loghr_pfs_interim, "± SE:", input$se_loghr_pfs_interim, "\n")
         cat("  Target log(HR):", input$loghr_os_target, "\n\n")
@@ -459,7 +558,7 @@ server <- function(input, output, session) {
         cat("This may take several minutes. Please wait.\n\n")
       })
       
-      # Fit model
+      # Fit model with user-specified MCMC controls
       fit <- stan(
         model_code = stan_code,
         data = stan_data,
@@ -471,8 +570,8 @@ server <- function(input, output, session) {
         verbose = FALSE,
         refresh = 0,
         control = list(
-          adapt_delta = 0.99,
-          max_treedepth = 12
+          adapt_delta = input$adapt_delta,
+          max_treedepth = input$max_treedepth
         )
       )
       
