@@ -1,0 +1,30 @@
+# Quarto output files
+*.html
+!resume.css
+/_site/
+/.quarto/
+
+# R files
+.Rhistory
+.RData
+.Rproj.user
+
+# LaTeX intermediate files
+*.aux
+*.log
+*.out
+*.toc
+*.nav
+*.snm
+*.vrb
+*.synctex.gz
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
