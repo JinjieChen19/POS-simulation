@@ -430,3 +430,28 @@ If you use this application in your research, please cite the original methodolo
 - All five main panels operational
 - Non-centered parameterization for improved convergence
 - Real-time diagnostics and visualization
+
+---
+
+## 🚀 Ready for shinyapps.io Deployment
+
+The app has been restructured into three files following Shiny deployment best practices:
+
+- **`global.R`** - Shared code (libraries, helper functions, defaults)
+- **`ui.R`** - User interface definition
+- **`server.R`** - Server logic and reactive programming
+
+### Quick Deployment
+
+```r
+library(rsconnect)
+setwd("/path/to/POS-simulation")
+
+rsconnect::deployApp(
+  appFiles = c("global.R", "ui.R", "server.R"),
+  appName = "bayesian-pos-simulation"
+)
+```
+
+**See [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) for complete deployment instructions.**
+
