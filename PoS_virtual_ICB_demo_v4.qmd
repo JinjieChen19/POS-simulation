@@ -23,6 +23,11 @@ format:
     width: 1280
     height: 720
     html-math-method: mathjax
+  html:
+    theme: cosmo
+    toc: true
+    toc-depth: 2
+    number-sections: true
 
 execute:
   echo: false

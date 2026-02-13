@@ -3,7 +3,11 @@ title: "Predictive Probability of Success (PoS)"
 subtitle: "Virtual ICB case study: Using PFS to predict OS (log(HR), p<0.05)" 
 author: Jinjie Chen 
 date: "2026-01-07" 
-format: pptx 
+format: 
+  pptx: default
+  html:
+    theme: cosmo
+    toc: true
 editor: visual
 ---
 
