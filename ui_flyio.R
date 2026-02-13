@@ -1,0 +1,178 @@
+# ============================================================================
+# UI.R - User Interface for Bayesian PoS Simulation App
+# ============================================================================
+# Defines the user interface with 4 tabs:
+# 1. Run Model - Controls for MCMC settings, data generation, priors
+# 2. Results - MCMC diagnostics, posterior plots, PoS calculation
+# 3. Scatter Plot - Visualization of 27+1 trials
+# 4. Data - Historical trials table
+# ============================================================================
+
+navbarPage(
+  title = "Bayesian PoS Simulation - Overall Survival (Simplified)",
+  theme = shinytheme("flatly"),
+  
+  tabPanel("Run Model",
+           sidebarLayout(
+             sidebarPanel(
+               h3("MCMC Settings"),
+               numericInput("n_iter", "MCMC Iterations:", value = 2000, min = 1000, max = 10000, step = 500),
+              helpText("Note: Lower values (2000-3000) recommended for shinyapps.io to avoid timeouts."),
+               numericInput("n_chains", "Number of Chains:", value = 1, min = 1, max = 8),
+              helpText("Note: Use 1 chain for shinyapps.io to avoid 'invalid connection' errors."),
+               numericInput("adapt_delta", "Adapt Delta:", value = 0.99, min = 0.8, max = 0.9999, step = 0.01),
+               numericInput("max_treedepth", "Max Tree Depth:", value = 12, min = 10, max = 15, step = 1),
+               hr(),
+               
+               # New section for data generation parameters
+               h3("Data Generation Parameters"),
+               wellPanel(
+                 style = "background-color: #f8f9fa;",
+                 h4("Random Seed"),
+                 numericInput("data_seed", "Random Seed:", value = 20260212, min = 1, step = 1),
+                 helpText("Set seed for reproducible data generation"),
+                 
+                 h4("Population Parameters"),
+                 fluidRow(
+                   column(6, numericInput("data_mu_os", "μ_OS (True):", value = -0.30, step = 0.05)),
+                   column(6, numericInput("data_mu_pfs", "μ_PFS (True):", value = -0.45, step = 0.05))
+                 ),
+                 fluidRow(
+                   column(6, numericInput("data_tau_os", "τ_OS (True):", value = 0.15, min = 0.01, step = 0.01)),
+                   column(6, numericInput("data_tau_pfs", "τ_PFS (True):", value = 0.15, min = 0.01, step = 0.01))
+                 ),
+                 numericInput("data_rho_true", "ρ (True Between-Trial Correlation):", value = 0.65, min = -0.95, max = 0.95, step = 0.05),
+                 helpText("These are the TRUE population parameters used to generate the 27 historical trials"),
+                 
+                 h4("Standard Error Ranges"),
+                 fluidRow(
+                   column(6, numericInput("data_se_os_min", "SE_OS Min:", value = 0.10, min = 0.01, step = 0.01)),
+                   column(6, numericInput("data_se_os_max", "SE_OS Max:", value = 0.13, min = 0.01, step = 0.01))
+                 ),
+                 fluidRow(
+                   column(6, numericInput("data_se_pfs_min", "SE_PFS Min:", value = 0.08, min = 0.01, step = 0.01)),
+                   column(6, numericInput("data_se_pfs_max", "SE_PFS Max:", value = 0.11, min = 0.01, step = 0.01))
+                 ),
+                 
+                 h4("Within-Trial Correlation Range"),
+                 fluidRow(
+                   column(6, numericInput("data_rho_within_min", "ρ_within Min:", value = 0.55, min = 0, max = 1, step = 0.05)),
+                   column(6, numericInput("data_rho_within_max", "ρ_within Max:", value = 0.75, min = 0, max = 1, step = 0.05))
+                 ),
+                 helpText("Range for within-trial correlation between OS and PFS")
+               ),
+               hr(),
+               
+               h3("Prior Settings"),
+               h4("μ Priors (Population Means)"),
+               fluidRow(
+                 column(6, numericInput("prior_mu_os_mean", "OS Mean:", value = -0.35)),
+                 column(6, numericInput("prior_mu_os_sd", "OS SD:", value = 1.0, min = 0.01))
+               ),
+               fluidRow(
+                 column(6, numericInput("prior_mu_pfs_mean", "PFS Mean:", value = -0.45)),
+                 column(6, numericInput("prior_mu_pfs_sd", "PFS SD:", value = 1.0, min = 0.01))
+               ),
+               
+               h4("τ Priors (Between-Trial SDs)"),
+               selectInput("prior_tau_type", "Distribution:",
+                           choices = c("Exponential" = "exponential", "Half-Normal" = "half_normal"),
+                           selected = "exponential"),
+               fluidRow(
+                 column(6, numericInput("prior_tau_param_os", "OS Parameter:", value = 1, min = 0.01, step = 0.1)),
+                 column(6, numericInput("prior_tau_param_pfs", "PFS Parameter:", value = 1, min = 0.01, step = 0.1))
+               ),
+               helpText("Exponential: rate parameter (mean=1/rate). Half-Normal: SD parameter"),
+               
+               h4("ρ Prior (Between-Trial Correlation)"),
+               selectInput("prior_rho_type", "Distribution:",
+                           choices = c("Fisher z-transform (RECOMMENDED)" = "fisher_z",
+                                       "Uniform(-0.95, 0.95)" = "uniform",
+                                       "Uniform(0, 0.95) - Positive Only" = "uniform_positive",
+                                       "Beta(α,β) - Positive Only" = "beta",
+                                       "LKJ(η)" = "lkj"),
+                           selected = "fisher_z"),
+               
+               conditionalPanel(
+                 condition = "input.prior_rho_type == 'fisher_z'",
+                 numericInput("prior_rho_param", "z Prior Mean (μ_z):", value = mu_z_default, step = 0.1),
+                 numericInput("prior_rho_param2", "z Prior SD (σ_z):", value = sd_z_default, min = 0.01, step = 0.01),
+                 helpText(paste0("Default values give ρ 95% ~ [0.35, 0.80]. ",
+                                 "For weakly informative: μ_z=0, σ_z=1.5. ",
+                                 "For high positive: μ_z=", round(atanh(0.7), 2), ", σ_z=0.5"))
+               ),
+               conditionalPanel(
+                 condition = "input.prior_rho_type == 'beta'",
+                 numericInput("prior_rho_param", "α (alpha):", value = 2, min = 0.1, step = 0.1),
+                 numericInput("prior_rho_param2", "β (beta):", value = 1, min = 0.1, step = 0.1),
+                 helpText("Beta(2,1): weakly favors high positive. Beta(5,1): strongly favors high positive. Beta(2,2): favors moderate around 0.5")
+               ),
+               conditionalPanel(
+                 condition = "input.prior_rho_type == 'lkj'",
+                 numericInput("prior_rho_param", "η (eta):", value = 1, min = 0.1, step = 0.1),
+                 helpText("LKJ(1): uniform over correlation matrices. η>1: favor smaller correlations. η<1: favor extreme correlations")
+               ),
+               
+               hr(),
+               
+               h3("Current Trial"),
+               numericInput("loghr_os_interim", "Interim log(HR) for OS:", value = -0.30, step = 0.05),
+               numericInput("se_loghr_os_interim", "SE of log(HR) for OS:", value = 0.20, min = 0.01, step = 0.01),
+               numericInput("loghr_pfs_interim", "Interim log(HR) for PFS:", value = -0.45, step = 0.05),
+               numericInput("se_loghr_pfs_interim", "SE of log(HR) for PFS:", value = 0.15, min = 0.01, step = 0.01),
+               
+               hr(),
+               actionButton("run_model", "Run Stan Model", class = "btn-primary btn-lg", icon = icon("play"))
+             ),
+             
+             mainPanel(
+               h3("Model Status"),
+               verbatimTextOutput("model_status")
+             )
+           )
+  ),
+  
+  tabPanel("Results",
+           fluidPage(
+             h2("MCMC Diagnostics"),
+             plotOutput("trace_plot", height = "400px"),
+             hr(),
+             
+             h2("Posterior Distributions"),
+             plotOutput("posterior_plot", height = "600px"),
+             hr(),
+             
+             h2("Probability of Success (PoS)"),
+             wellPanel(
+               style = "background-color: #f0f8ff;",
+               h3("PoS Calculation"),
+               p("PoS is the posterior probability that the true log(HR) for OS is less than 0 (i.e., treatment benefit)."),
+               verbatimTextOutput("pos_output")
+             )
+           )
+  ),
+  
+  tabPanel("Scatter Plot",
+           fluidPage(
+             h2("Scatter Plot of Historical Trials + Current Trial"),
+             p("Blue points: 27 historical trials. Red diamond: Current trial."),
+             plotOutput("scatter_plot", height = "600px"),
+             hr(),
+             h3("Interpretation"),
+             p("This plot shows the relationship between PFS and OS log(HR) values across all trials."),
+             p("The diagonal reference line (y=x) helps visualize where PFS and OS effects are equal."),
+             p("The between-trial correlation is displayed and represents the association at the trial level.")
+           )
+  ),
+  
+  tabPanel("Data",
+           fluidPage(
+             h2("Historical Trials Summary"),
+             p("Showing the 27 historical trials used for the Bayesian model."),
+             DT::dataTableOutput("data_table"),
+             hr(),
+             h3("Data Summary"),
+             verbatimTextOutput("data_summary")
+           )
+  )
+)
