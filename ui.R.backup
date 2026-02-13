@@ -16,10 +16,8 @@ navbarPage(
            sidebarLayout(
              sidebarPanel(
                h3("MCMC Settings"),
-               numericInput("n_iter", "MCMC Iterations:", value = 2000, min = 1000, max = 10000, step = 500),
-              helpText("Note: Lower values (2000-3000) recommended for shinyapps.io to avoid timeouts."),
-               numericInput("n_chains", "Number of Chains:", value = 1, min = 1, max = 8),
-              helpText("Note: Use 1 chain for shinyapps.io to avoid 'invalid connection' errors."),
+               numericInput("n_iter", "MCMC Iterations:", value = 4000, min = 1000, max = 10000, step = 500),
+               numericInput("n_chains", "Number of Chains:", value = 4, min = 1, max = 8),
                numericInput("adapt_delta", "Adapt Delta:", value = 0.99, min = 0.8, max = 0.9999, step = 0.01),
                numericInput("max_treedepth", "Max Tree Depth:", value = 12, min = 10, max = 15, step = 1),
                hr(),

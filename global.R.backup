@@ -18,12 +18,11 @@ library(DT)
 library(gridExtra)
 library(MASS)
 
-# Set rstan options for shinyapps.io compatibility
-# CRITICAL: shinyapps.io requires single-core execution
-options(mc.cores = 1)  # Force single-core (required for shinyapps.io)
-Sys.setenv(STAN_NUM_THREADS = "1")  # Disable Stan threading
-Sys.setenv(OMP_NUM_THREADS = "1")   # Disable OpenMP threading
-rstan_options(auto_write = FALSE)   # Disable auto-write (already done, but explicit)
+# Set rstan options for better performance
+options(mc.cores = parallel::detectCores())
+# Note: auto_write is disabled to avoid "invalid connection" errors on shinyapps.io
+# The app will compile Stan models fresh each session, which is safer for deployment
+# rstan_options(auto_write = TRUE)  # Commented out for shinyapps.io compatibility
 
 # ===========================================================================
 # FISHER-Z PRIOR DEFAULTS

@@ -111,7 +111,7 @@ function(input, output, session) {
       W_curr = W_curr
     )
     
-    # Fit model with enhanced error handling
+    # Fit model
     tryCatch({
       fit <- stan(
         model_code = stan_code,
@@ -119,8 +119,7 @@ function(input, output, session) {
         iter = input$n_iter,
         chains = input$n_chains,
         control = list(adapt_delta = input$adapt_delta, max_treedepth = input$max_treedepth),
-        verbose = FALSE,
-        refresh = 0  # Suppress output to avoid connection issues
+        verbose = FALSE
       )
       
       results$fit <- fit
@@ -137,28 +136,7 @@ function(input, output, session) {
     }, error = function(e) {
       output$model_status <- renderPrint({
         cat("Error running Stan model:\n")
-        cat(strrep("=", 60), "\n")
-        cat(e$message, "\n\n")
-        
-        # Provide helpful guidance
-        if (grepl("invalid connection|connection|socket", e$message, ignore.case = TRUE)) {
-          cat("\nTroubleshooting 'invalid connection' error:\n")
-          cat("1. This app is configured for shinyapps.io (single-core mode)\n")
-          cat("2. Try reducing MCMC iterations (currently: ", input$n_iter, ")\n")
-          cat("3. Ensure chains = 1 (currently: ", input$n_chains, ")\n")
-          cat("4. If on shinyapps.io, the issue may be resource limits\n")
-          cat("5. Try iterations = 1000-2000 for faster execution\n")
-        } else if (grepl("time|timeout", e$message, ignore.case = TRUE)) {
-          cat("\nThis appears to be a timeout issue:\n")
-          cat("1. Reduce MCMC iterations (current: ", input$n_iter, ")\n")
-          cat("2. Try 1000-1500 iterations for faster execution\n")
-          cat("3. Consider running locally for larger analyses\n")
-        } else {
-          cat("\nGeneral troubleshooting:\n")
-          cat("1. Check that all priors are properly specified\n")
-          cat("2. Verify current trial data is reasonable\n")
-          cat("3. Try reducing iterations if on cloud platform\n")
-        }
+        cat(e$message, "\n")
       })
     })
   })
