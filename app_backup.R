@@ -12,7 +12,6 @@ library(rstan)
 library(bayesplot)
 library(DT)
 library(gridExtra)
-library(MASS)
 
 # Set rstan options for better performance
 options(mc.cores = parallel::detectCores())
@@ -22,60 +21,56 @@ rstan_options(auto_write = TRUE)
 # HELPER FUNCTIONS
 # ===========================================================================
 
-# ===========================================================================
-# Fisher-z prior calculation for informative rho prior
-# Target: rho 95% interval ~ [0.35, 0.80]
-# ===========================================================================
-rho_L <- 0.35
-rho_U <- 0.80
-mu_z_default <- (atanh(rho_L) + atanh(rho_U)) / 2
-sd_z_default <- (atanh(rho_U) - atanh(rho_L)) / (2 * 1.96)
-
-# Data preparation function - Updated to match new simulation algorithm
+# Data preparation functions
 prepare_historical_loghr_data <- function() {
-  set.seed(20260212)  # Updated seed to match new simulation code
+  set.seed(20260211)
   
-  K <- 27
+  # Generate realistic data with moderate between-trial correlation
+  # Target: between-trial cor ~ 0.65, matching typical within-trial correlations
   
-  # True population parameters (logHR scale) - from new simulation code
-  mu_true  <- c(-0.30, -0.45)   # (OS, PFS)
-  tau_true <- c(0.15, 0.15)     # between-trial SDs
-  rho_true <- 0.65              # generating correlation (population-level)
+  n_trials <- 27
   
-  R_true <- matrix(c(1, rho_true, rho_true, 1), 2, 2, byrow = TRUE)
-  Sigma_true <- diag(tau_true) %*% R_true %*% diag(tau_true)
+  # Use Cholesky decomposition for precise correlation control
+  # Define population parameters
+  mu_os <- -0.30   # Population mean for OS
+  mu_pfs <- -0.45  # Population mean for PFS
+  sd_os <- 0.15    # Between-trial SD for OS (increased for better identifiability)
+  sd_pfs <- 0.15   # Between-trial SD for PFS (increased for better identifiability)
+  target_cor <- 0.65  # Target between-trial correlation
   
-  # Trial-level true effects theta_k ~ MVN(mu_true, Sigma_true)
-  theta <- MASS::mvrnorm(n = K, mu = mu_true, Sigma = Sigma_true)  # K x 2
+  # Create covariance matrix IN [OS, PFS] ORDER to match Stan model
+  # This is CRITICAL - order must match how data is passed to Stan
+  cov_matrix <- matrix(c(
+    sd_os^2, target_cor * sd_os * sd_pfs,
+    target_cor * sd_os * sd_pfs, sd_pfs^2
+  ), nrow = 2, byrow = TRUE)
   
-  # Realistic SEs (from new simulation code)
-  se_os  <- runif(K, 0.10, 0.13)  # OS ~ Schoenfeld-like magnitude
-  se_pfs <- runif(K, 0.08, 0.11)
+  # Cholesky decomposition
+  L <- chol(cov_matrix)
   
-  # Within-trial correlation of estimated logHRs (from new simulation code)
-  rho_within <- runif(K, 0.55, 0.75)
+  # Generate independent standard normal variates
+  Z <- matrix(rnorm(2 * n_trials), nrow = 2, ncol = n_trials)
   
-  # Observed summary estimates y_k ~ MVN(theta_k, W_k)
-  y <- matrix(NA_real_, nrow = K, ncol = 2)  # columns: OS, PFS
+  # Transform to correlated variates
+  Y <- t(L) %*% Z
   
-  for (k in 1:K) {
-    cov_k <- rho_within[k] * se_os[k] * se_pfs[k]
-    W_k <- matrix(c(se_os[k]^2, cov_k,
-                    cov_k,      se_pfs[k]^2),
-                  2, 2, byrow = TRUE)
-    y[k, ] <- MASS::mvrnorm(n = 1, mu = theta[k, ], Sigma = W_k)
-  }
+  # Add means - Y[1,] is OS, Y[2,] is PFS (matching covariance matrix order)
+  loghr_os <- mu_os + Y[1, ]
+  loghr_pfs <- mu_pfs + Y[2, ]
   
-  # Return as tibble
+  # Ensure reasonable ranges (gentle clipping to maintain realistic values)
+  loghr_pfs <- pmax(pmin(loghr_pfs, -0.15), -0.75)
+  loghr_os <- pmax(pmin(loghr_os, -0.05), -0.55)
+  
   tibble(
-    trial_id = paste0("ICB-HIST-", sprintf("%02d", 1:K)),
-    cancer_type = rep(c("Melanoma", "NSCLC", "Renal", "HCC", "Bladder", "Gastric"), length.out = K),
-    n_patients = sample(95:200, K, replace = TRUE),
-    loghr_os = y[, 1],    # Observed OS logHR
-    se_loghr_os = se_os,
-    loghr_pfs = y[, 2],   # Observed PFS logHR
-    se_loghr_pfs = se_pfs,
-    corr_pfs_os = rho_within
+    trial_id = paste0("ICB-HIST-", sprintf("%02d", 1:27)),
+    cancer_type = rep(c("Melanoma", "NSCLC", "Renal", "HCC", "Bladder", "Gastric"), length.out = 27),
+    n_patients = sample(95:200, 27, replace = TRUE),
+    loghr_pfs = loghr_pfs,
+    se_loghr_pfs = runif(27, 0.12, 0.18),  # Within-trial SE (measurement uncertainty)
+    loghr_os = loghr_os,
+    se_loghr_os = runif(27, 0.16, 0.22),   # Within-trial SE (measurement uncertainty)
+    corr_pfs_os = runif(27, 0.60, 0.75)    # Within-trial correlations
   ) %>%
     mutate(cov_pfs_os = corr_pfs_os * se_loghr_pfs * se_loghr_os)
 }
@@ -400,8 +395,8 @@ ui <- navbarPage(
                           selected = "fisher_z"),
                conditionalPanel(
                  condition = "input.prior_rho_type == 'fisher_z'",
-                 numericInput("prior_rho_param", "z Prior Mean (μ_z):", value = 0.5365, step = 0.01),
-                 numericInput("prior_rho_param2", "z Prior SD (σ_z):", value = 0.2173, min = 0.01, step = 0.01),
+                 numericInput("prior_rho_param", "z Prior Mean (μ_z):", value = 0, step = 0.1),
+                 numericInput("prior_rho_param2", "z Prior SD (σ_z):", value = 1.5, min = 0.1, step = 0.1),
                  helpText("Fisher z-transformation: z = atanh(ρ), ρ = tanh(z). This provides better sampling geometry and reduces shrinkage toward 0. Recommended: μ_z=0, σ_z=1.5 (weakly informative). For high ρ: μ_z=atanh(0.7)≈0.87, σ_z=0.5.")
                ),
                conditionalPanel(
@@ -486,33 +481,7 @@ ui <- navbarPage(
            )
   ),
   
-  
-  # Tab 4: NEW - Scatter Plot
-  tabPanel("Scatter Plot",
-           fluidPage(
-             h3("OS vs PFS Log-Hazard Ratios: Historical + Current Trial"),
-             hr(),
-             fluidRow(
-               column(12,
-                      plotOutput("scatter_plot", height = "600px")
-               )
-             ),
-             fluidRow(
-               column(12,
-                      h4("Interpretation"),
-                      p("This scatter plot shows the relationship between PFS and OS log-hazard ratios for:"),
-                      tags$ul(
-                        tags$li(strong("27 historical trials"), " (blue points)"),
-                        tags$li(strong("Current trial"), " (red point, highlighted and labeled)")
-                      ),
-                      p("The between-trial correlation (ρ) is estimated from the pattern of these 27 historical points. 
-                        The diagonal reference line (y=x) helps visualize concordance between OS and PFS effects.")
-                    )
-             )
-           )
-  ),
-  
-  # Tab 5: Data Management
+  # Tab 4: Data Management
   tabPanel("Data",
            fluidRow(
              column(12,
@@ -699,55 +668,6 @@ server <- function(input, output, session) {
         " <- This is what the model learns as rho\n")
     cat("  Within-trial cor (average): ", round(mean(historical_data$corr_pfs_os), 3), 
         " <- Patient-level correlation within trials\n")
-  })
-  
-  
-  # NEW: Scatter plot of historical + current trial
-  output$scatter_plot <- renderPlot({
-    # Prepare data for plotting
-    plot_data <- historical_data %>%
-      mutate(type = "Historical")
-    
-    # Add current trial
-    current_point <- data.frame(
-      loghr_pfs = input$loghr_pfs_interim,
-      loghr_os = input$loghr_os_interim,
-      type = "Current"
-    )
-    
-    plot_data_combined <- bind_rows(
-      plot_data %>% select(loghr_pfs, loghr_os, type),
-      current_point
-    )
-    
-    # Calculate correlation for annotation
-    between_cor <- cor(historical_data$loghr_pfs, historical_data$loghr_os)
-    
-    # Create scatter plot
-    ggplot(plot_data_combined, aes(x = loghr_pfs, y = loghr_os, color = type, size = type)) +
-      geom_point(alpha = 0.7) +
-      geom_abline(intercept = 0, slope = 1, linetype = "dashed", color = "gray50", linewidth = 0.5) +
-      geom_point(data = current_point, aes(x = loghr_pfs, y = loghr_os), 
-                 color = "red", size = 5, shape = 18) +  # Diamond for current
-      annotate("text", x = current_point$loghr_pfs, y = current_point$loghr_os - 0.03,
-               label = "Current Trial", color = "red", fontface = "bold", size = 4) +
-      scale_color_manual(values = c("Historical" = "steelblue", "Current" = "red")) +
-      scale_size_manual(values = c("Historical" = 3, "Current" = 5)) +
-      labs(
-        title = "OS vs PFS Log-Hazard Ratios: Historical Trials + Current Trial",
-        subtitle = paste0("Between-trial correlation: ", round(between_cor, 3), 
-                         " (from 27 historical trials)"),
-        x = "PFS log(HR)",
-        y = "OS log(HR)",
-        caption = "Diagonal line represents y=x (perfect concordance)"
-      ) +
-      theme_minimal(base_size = 14) +
-      theme(
-        legend.position = "top",
-        legend.title = element_blank(),
-        plot.title = element_text(face = "bold", size = 16),
-        plot.subtitle = element_text(size = 12, color = "gray30")
-      )
   })
   
   # Run model
