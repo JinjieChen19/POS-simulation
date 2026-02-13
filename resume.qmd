@@ -1,0 +1,70 @@
+---
+title: ""
+format:
+  html:
+    toc: false
+    css: resume.css
+  pdf:
+    documentclass: article
+    geometry: 
+      - margin=0.5in
+    fontsize: 11pt
+---
+
+::: {.resume-header}
+# Jinjie Chen
+
+**Biostatistician | Statistical Methodologist**
+
+[Email] • [LinkedIn] • [GitHub]
+:::
+
+## Professional Summary
+
+Experienced biostatistician specializing in Bayesian methods and Predictive Probability of Success (PoS) for clinical trials. Expert in developing statistical frameworks for OS-PFS prediction models in oncology.
+
+## Experience
+
+### Senior Biostatistician  
+**[Organization]** | 2020 - Present
+
+- Developed and implemented Bayesian PoS models for overall survival prediction using log(HR) methodology
+- Created comprehensive simulation frameworks for ICB trial design and interim decision-making
+- Established bivariate random-effects models for analyzing OS-PFS relationships across 27+ historical trials
+- Led internal methodology workshops on predictive probability applications
+
+### Biostatistician
+**[Organization]** | 2017 - 2020
+
+- Conducted statistical analyses for Phase II/III clinical trials in oncology
+- Implemented adaptive design strategies using interim data
+- Collaborated with cross-functional teams on trial design and endpoint selection
+
+## Education
+
+**PhD in Biostatistics** | [University] | [Year]
+
+**MS in Statistics** | [University] | [Year]
+
+## Technical Skills
+
+- **Statistical Methods:** Bayesian analysis, survival analysis, random-effects models, meta-analysis
+- **Programming:** R (expert), SAS, Python
+- **Tools:** Quarto, RMarkdown, Stan, JAGS
+- **Domains:** Clinical trials, oncology, surrogate endpoints, PoS methodology
+
+## Selected Publications & Presentations
+
+- "Predictive Probability of Success: Virtual ICB case study using PFS to predict OS"
+- Developed reproducible demos for internal methodology sharing
+- Created interactive visualizations for PoS sensitivity analyses
+
+## Professional Memberships
+
+- American Statistical Association (ASA)
+- International Biometric Society
+- Society for Clinical Trials
+
+---
+
+*Last updated: January 2026*
