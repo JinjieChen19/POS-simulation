@@ -20,7 +20,9 @@ library(MASS)
 
 # Set rstan options for better performance
 options(mc.cores = parallel::detectCores())
-rstan_options(auto_write = TRUE)
+# Note: auto_write is disabled to avoid "invalid connection" errors on shinyapps.io
+# The app will compile Stan models fresh each session, which is safer for deployment
+# rstan_options(auto_write = TRUE)  # Commented out for shinyapps.io compatibility
 
 # ===========================================================================
 # FISHER-Z PRIOR DEFAULTS
