@@ -674,7 +674,7 @@ server <- function(input, output, session) {
   # Display historical data
   output$historical_data_table <- renderDT({
     historical_data %>%
-      select(trial_id, cancer_type, n_patients, loghr_os, se_loghr_os, loghr_pfs, se_loghr_pfs, corr_pfs_os) %>%
+      dplyr::select(trial_id, cancer_type, n_patients, loghr_os, se_loghr_os, loghr_pfs, se_loghr_pfs, corr_pfs_os) %>%
       mutate(across(starts_with("loghr"), ~round(., 3)),
              across(starts_with("se_"), ~round(., 3)),
              across(starts_with("corr"), ~round(., 3))) %>%
@@ -716,7 +716,7 @@ server <- function(input, output, session) {
     )
     
     plot_data_combined <- bind_rows(
-      plot_data %>% select(loghr_pfs, loghr_os, type),
+      plot_data %>% dplyr::select(loghr_pfs, loghr_os, type),
       current_point
     )
     
