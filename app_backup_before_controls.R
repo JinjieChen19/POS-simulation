@@ -32,21 +32,15 @@ mu_z_default <- (atanh(rho_L) + atanh(rho_U)) / 2
 sd_z_default <- (atanh(rho_U) - atanh(rho_L)) / (2 * 1.96)
 
 # Data preparation function - Updated to match new simulation algorithm
-# Now accepts parameters for customization
-prepare_historical_loghr_data <- function(seed = 20260212,
-                                          mu_os = -0.30, mu_pfs = -0.45,
-                                          tau_os = 0.15, tau_pfs = 0.15,
-                                          rho_true = 0.65,
-                                          se_os_min = 0.10, se_os_max = 0.13,
-                                          se_pfs_min = 0.08, se_pfs_max = 0.11,
-                                          rho_within_min = 0.55, rho_within_max = 0.75) {
-  set.seed(seed)
+prepare_historical_loghr_data <- function() {
+  set.seed(20260212)  # Updated seed to match new simulation code
   
   K <- 27
   
-  # True population parameters (logHR scale)
-  mu_true  <- c(mu_os, mu_pfs)   # (OS, PFS)
-  tau_true <- c(tau_os, tau_pfs)     # between-trial SDs
+  # True population parameters (logHR scale) - from new simulation code
+  mu_true  <- c(-0.30, -0.45)   # (OS, PFS)
+  tau_true <- c(0.15, 0.15)     # between-trial SDs
+  rho_true <- 0.65              # generating correlation (population-level)
   
   R_true <- matrix(c(1, rho_true, rho_true, 1), 2, 2, byrow = TRUE)
   Sigma_true <- diag(tau_true) %*% R_true %*% diag(tau_true)
@@ -54,12 +48,12 @@ prepare_historical_loghr_data <- function(seed = 20260212,
   # Trial-level true effects theta_k ~ MVN(mu_true, Sigma_true)
   theta <- MASS::mvrnorm(n = K, mu = mu_true, Sigma = Sigma_true)  # K x 2
   
-  # Realistic SEs
-  se_os  <- runif(K, se_os_min, se_os_max)  # OS ~ Schoenfeld-like magnitude
-  se_pfs <- runif(K, se_pfs_min, se_pfs_max)
+  # Realistic SEs (from new simulation code)
+  se_os  <- runif(K, 0.10, 0.13)  # OS ~ Schoenfeld-like magnitude
+  se_pfs <- runif(K, 0.08, 0.11)
   
-  # Within-trial correlation of estimated logHRs
-  rho_within <- runif(K, rho_within_min, rho_within_max)
+  # Within-trial correlation of estimated logHRs (from new simulation code)
+  rho_within <- runif(K, 0.55, 0.75)
   
   # Observed summary estimates y_k ~ MVN(theta_k, W_k)
   y <- matrix(NA_real_, nrow = K, ncol = 2)  # columns: OS, PFS
@@ -309,15 +303,13 @@ ui <- navbarPage(
                       ),
                       tags$li(HTML("<strong>Between-trial heterogeneity:</strong>")),
                       tags$ul(
-                        tags$li(HTML("τ<sub>OS</sub> ~ Exp(1) or Half-Normal(0, σ) [Distribution and parameter adjustable, default: Exp(1)]")),
-                        tags$li(HTML("τ<sub>PFS</sub> ~ Exp(1) or Half-Normal(0, σ) [Distribution and parameter adjustable, default: Exp(1)]"))
+                        tags$li(HTML("τ<sub>OS</sub> ~ Exp(2) or Half-Normal(0, σ) [Distribution and parameter adjustable]")),
+                        tags$li(HTML("τ<sub>PFS</sub> ~ Exp(2) or Half-Normal(0, σ) [Distribution and parameter adjustable]"))
                       ),
-                      tags$li(HTML("<strong>Correlation (RECOMMENDED: Fisher-z):</strong>")),
+                      tags$li(HTML("<strong>Correlation:</strong>")),
                       tags$ul(
-                        tags$li(HTML("<strong style='color: #0066cc;'>Fisher-z transformation (RECOMMENDED):</strong> z ~ N(μ<sub>z</sub>, σ<sub>z</sub>), ρ = tanh(z)")),
-                        tags$li(HTML("<em>Default informative prior:</em> μ<sub>z</sub> = 0.5365, σ<sub>z</sub> = 0.2173 → ρ 95% ~ [0.35, 0.80]")),
-                        tags$li(HTML("<em>Alternative options:</em> Uniform(-0.95, 0.95), Uniform(0, 0.95), Beta(α, β), or LKJ(η)")),
-                        tags$li(HTML("<em>Note:</em> Fisher-z provides better sampling geometry and more stable estimation"))
+                        tags$li(HTML("ρ ~ Uniform(-0.95, 0.95), Uniform(0, 0.95), Beta(α, β), or LKJ(η) [Distribution and parameter adjustable]")),
+                        tags$li(HTML("<em>Informative option:</em> For oncology trials where positive correlation is expected, use Uniform(0, 0.95) or Beta priors"))
                       )
                     ),
                     
@@ -362,15 +354,14 @@ ui <- navbarPage(
                     p("This represents the posterior probability that the current trial's OS log(HR) will meet the success criterion."),
                     
                     h4("Customizable Features"),
-                    p(strong("Adjustable in 'Run Model' tab:")),
+                    p(strong("New in this version:")),
                     tags$ul(
-                      tags$li(HTML("<strong>Prior distributions:</strong> Flexible priors for all model parameters (μ, τ, ρ)")),
-                      tags$li(HTML("<strong>Fisher-z prior:</strong> Informative prior for ρ with target 95% interval [0.35, 0.80] (RECOMMENDED)")),
-                      tags$li(HTML("<strong>Tau priors:</strong> Choice of Exponential(λ) or Half-Normal(0, σ)")),
-                      tags$li(HTML("<strong>Rho priors:</strong> Fisher-z (recommended), Uniform, Beta, or LKJ distributions")),
-                      tags$li(HTML("<strong>Data generation:</strong> Customizable seed, population parameters (μ, τ, ρ), SE ranges, within-trial correlation")),
-                      tags$li(HTML("<strong>MCMC settings:</strong> Adjustable adapt_delta, max_treedepth, iterations, and chains")),
-                      tags$li(HTML("<strong>Historical data:</strong> 27 trials for robust estimation (fixed)"))
+                      tags$li("Adjustable MCMC parameters (adapt_delta, max_treedepth)"),
+                      tags$li("27 historical trials for more robust estimation"),
+                      tags$li("Flexible prior distributions for all model parameters"),
+                      tags$li("Choice of Exponential or Half-Normal priors for heterogeneity"),
+                      tags$li("Choice of Uniform, Uniform(positive), Beta, or LKJ priors for correlation"),
+                      tags$li("Informative positive priors for ρ when expecting positive correlation (typical in oncology)")
                     )
              )
            )
@@ -385,45 +376,6 @@ ui <- navbarPage(
                numericInput("n_chains", "Number of Chains:", value = 4, min = 1, max = 8),
                numericInput("adapt_delta", "Adapt Delta:", value = 0.99, min = 0.8, max = 0.9999, step = 0.01),
                numericInput("max_treedepth", "Max Tree Depth:", value = 12, min = 10, max = 15, step = 1),
-               hr(),
-               
-               # New section for data generation parameters
-               h3("Data Generation Parameters"),
-               wellPanel(
-                 style = "background-color: #f8f9fa;",
-                 h4("Random Seed"),
-                 numericInput("data_seed", "Random Seed:", value = 20260212, min = 1, step = 1),
-                 helpText("Set seed for reproducible data generation"),
-                 
-                 h4("Population Parameters"),
-                 fluidRow(
-                   column(6, numericInput("data_mu_os", "μ_OS (True):", value = -0.30, step = 0.05)),
-                   column(6, numericInput("data_mu_pfs", "μ_PFS (True):", value = -0.45, step = 0.05))
-                 ),
-                 fluidRow(
-                   column(6, numericInput("data_tau_os", "τ_OS (True):", value = 0.15, min = 0.01, step = 0.01)),
-                   column(6, numericInput("data_tau_pfs", "τ_PFS (True):", value = 0.15, min = 0.01, step = 0.01))
-                 ),
-                 numericInput("data_rho_true", "ρ (True Between-Trial Correlation):", value = 0.65, min = -0.95, max = 0.95, step = 0.05),
-                 helpText("These are the TRUE population parameters used to generate the 27 historical trials"),
-                 
-                 h4("Standard Error Ranges"),
-                 fluidRow(
-                   column(6, numericInput("data_se_os_min", "SE_OS Min:", value = 0.10, min = 0.01, step = 0.01)),
-                   column(6, numericInput("data_se_os_max", "SE_OS Max:", value = 0.13, min = 0.01, step = 0.01))
-                 ),
-                 fluidRow(
-                   column(6, numericInput("data_se_pfs_min", "SE_PFS Min:", value = 0.08, min = 0.01, step = 0.01)),
-                   column(6, numericInput("data_se_pfs_max", "SE_PFS Max:", value = 0.11, min = 0.01, step = 0.01))
-                 ),
-                 
-                 h4("Within-Trial Correlation Range"),
-                 fluidRow(
-                   column(6, numericInput("data_rho_within_min", "ρ_within Min:", value = 0.55, min = 0, max = 1, step = 0.05)),
-                   column(6, numericInput("data_rho_within_max", "ρ_within Max:", value = 0.75, min = 0, max = 1, step = 0.05))
-                 ),
-                 helpText("Within-trial correlation between OS and PFS measurements (patient-level)")
-               ),
                hr(),
                h3("Prior Settings"),
                h4("Population Means"),
@@ -595,9 +547,6 @@ ui <- navbarPage(
                     
                     h3("Key Features"),
                     tags$ul(
-                      tags$li(HTML("<strong>Customizable data generation:</strong> Control seed, population parameters (μ, τ, ρ), SE ranges, and within-trial correlation")),
-                      tags$li(HTML("<strong>Fisher-z prior (RECOMMENDED):</strong> Informative prior for ρ with target 95% interval [0.35, 0.80]")),
-                      tags$li(HTML("<strong>Flexible prior distributions:</strong> Choose from Exponential, Half-Normal, Fisher-z, Uniform, Beta, or LKJ")),
                       tags$li(HTML("<strong>Non-centered parameterization:</strong> Improves MCMC convergence and reduces divergent transitions")),
                       tags$li(HTML("<strong>Adaptive MCMC:</strong> Uses adapt_delta = 0.99 and max_treedepth = 12 for robust sampling")),
                       tags$li(HTML("<strong>Parallel processing:</strong> Automatically detects and uses available CPU cores")),
@@ -712,23 +661,8 @@ ui <- navbarPage(
 
 server <- function(input, output, session) {
   
-  # Reactive historical data that regenerates when parameters change
-  historical_data <- reactive({
-    prepare_historical_loghr_data(
-      seed = input$data_seed,
-      mu_os = input$data_mu_os,
-      mu_pfs = input$data_mu_pfs,
-      tau_os = input$data_tau_os,
-      tau_pfs = input$data_tau_pfs,
-      rho_true = input$data_rho_true,
-      se_os_min = input$data_se_os_min,
-      se_os_max = input$data_se_os_max,
-      se_pfs_min = input$data_se_pfs_min,
-      se_pfs_max = input$data_se_pfs_max,
-      rho_within_min = input$data_rho_within_min,
-      rho_within_max = input$data_rho_within_max
-    )
-  })
+  # Load historical data
+  historical_data <- prepare_historical_loghr_data()
   
   # Reactive values to store results
   results <- reactiveValues(
@@ -739,7 +673,7 @@ server <- function(input, output, session) {
   
   # Display historical data
   output$historical_data_table <- renderDT({
-    historical_data() %>%
+    historical_data %>%
       dplyr::select(trial_id, cancer_type, n_patients, loghr_os, se_loghr_os, loghr_pfs, se_loghr_pfs, corr_pfs_os) %>%
       mutate(across(starts_with("loghr"), ~round(., 3)),
              across(starts_with("se_"), ~round(., 3)),
@@ -751,19 +685,19 @@ server <- function(input, output, session) {
   output$data_summary <- renderPrint({
     cat("Historical Trials Summary\n")
     cat(strrep("=", 60), "\n\n")
-    cat("Number of trials: ", nrow(historical_data()), "\n")
-    cat("Cancer types: ", paste(unique(historical_data()$cancer_type), collapse = ", "), "\n\n")
-    cat("OS log(HR) - Mean:", round(mean(historical_data()$loghr_os), 3), 
-        "SD:", round(sd(historical_data()$loghr_os), 3), "\n")
-    cat("PFS log(HR) - Mean:", round(mean(historical_data()$loghr_pfs), 3), 
-        "SD:", round(sd(historical_data()$loghr_pfs), 3), "\n\n")
+    cat("Number of trials: ", nrow(historical_data), "\n")
+    cat("Cancer types: ", paste(unique(historical_data$cancer_type), collapse = ", "), "\n\n")
+    cat("OS log(HR) - Mean:", round(mean(historical_data$loghr_os), 3), 
+        "SD:", round(sd(historical_data$loghr_os), 3), "\n")
+    cat("PFS log(HR) - Mean:", round(mean(historical_data$loghr_pfs), 3), 
+        "SD:", round(sd(historical_data$loghr_pfs), 3), "\n\n")
     
     # Calculate and display between-trial correlation
-    between_trial_cor <- cor(historical_data()$loghr_pfs, historical_data()$loghr_os)
+    between_trial_cor <- cor(historical_data$loghr_pfs, historical_data$loghr_os)
     cat("CORRELATIONS:\n")
     cat("  Between-trial cor(PFS, OS): ", round(between_trial_cor, 3), 
         " <- This is what the model learns as rho\n")
-    cat("  Within-trial cor (average): ", round(mean(historical_data()$corr_pfs_os), 3), 
+    cat("  Within-trial cor (average): ", round(mean(historical_data$corr_pfs_os), 3), 
         " <- Patient-level correlation within trials\n")
   })
   
@@ -771,7 +705,7 @@ server <- function(input, output, session) {
   # NEW: Scatter plot of historical + current trial
   output$scatter_plot <- renderPlot({
     # Prepare data for plotting
-    plot_data <- historical_data() %>%
+    plot_data <- historical_data %>%
       mutate(type = "Historical")
     
     # Add current trial
@@ -787,7 +721,7 @@ server <- function(input, output, session) {
     )
     
     # Calculate correlation for annotation
-    between_cor <- cor(historical_data()$loghr_pfs, historical_data()$loghr_os)
+    between_cor <- cor(historical_data$loghr_pfs, historical_data$loghr_os)
     
     # Create scatter plot
     ggplot(plot_data_combined, aes(x = loghr_pfs, y = loghr_os, color = type, size = type)) +
@@ -821,7 +755,7 @@ server <- function(input, output, session) {
     
     # Prepare Stan data
     stan_data <- prepare_stan_data(
-      historical_data(),
+      historical_data,
       input$loghr_os_interim,
       input$se_loghr_os_interim,
       input$loghr_pfs_interim,
