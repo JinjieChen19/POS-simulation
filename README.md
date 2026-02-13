@@ -1,5 +1,26 @@
 # Bayesian Probability of Success (PoS) Simulation - R Shiny Application
 
+## 📱 NEW: Simplified Version Available! (2026-02-13)
+
+**Streamlined app without Help and Model Description tabs:**
+- **File:** `app_simple.R` - 20% fewer lines, cleaner interface
+- **Tabs:** Run Model, Results, Scatter Plot, Data (4 total)
+- **Functionality:** 100% of core features preserved ✅
+- **Best for:** Experienced users, production use, clean demos
+
+📖 **Guide:** [APP_SIMPLE_GUIDE.md](APP_SIMPLE_GUIDE.md) - Complete documentation  
+🚀 **Run:** `shiny::runApp("app_simple.R")`
+
+**Use Cases:**
+- ✅ Quick PoS assessment without scrolling through docs
+- ✅ Production deployments where UI space is limited
+- ✅ Experienced users who know the model
+- ✅ Demos and presentations
+
+**Still want documentation?** Use full version (`app.R`) with Help and Model Description tabs.
+
+---
+
 ## 🎨 MAJOR UPDATE: Core Algorithm Rewrite + Scatter Plot (2026-02-13) 🎨
 
 **COMPLETE REWRITE with Enhanced Visualization!**  
