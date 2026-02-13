@@ -1,5 +1,26 @@
 # Bayesian Probability of Success (PoS) Simulation - R Shiny Application
 
+## 🎨 MAJOR UPDATE: Core Algorithm Rewrite + Scatter Plot (2026-02-13) 🎨
+
+**COMPLETE REWRITE with Enhanced Visualization!**  
+- **Algorithm:** Rewritten from scratch using latest simulation methodology  
+- **Prior:** Informative Fisher-z prior for ρ (95% ~ [0.35, 0.80])  
+- **Visualization:** NEW scatter plot showing all 27 historical + current trial  
+- **Appearance:** All existing functionality and UI preserved ✅  
+- **Quality:** More realistic parameters, better statistical properties  
+
+📖 **START HERE:** [REWRITE_COMPLETE_SUMMARY.md](REWRITE_COMPLETE_SUMMARY.md) - Executive summary  
+📖 **TECHNICAL:** [ALGORITHM_REWRITE_SUMMARY.md](ALGORITHM_REWRITE_SUMMARY.md) - Complete details  
+📖 **TEST:** [test_scatter_plot.R](test_scatter_plot.R) - Standalone validation  
+
+**New features:**
+- ✅ Proper hierarchical data generation (population → trials → observations)
+- ✅ Informative prior: ρ 95% ~ [0.35, 0.80] (typical oncology trials)
+- ✅ Beautiful scatter plot: 27 blue points + 1 red diamond (current trial)
+- ✅ All existing tabs and functionality maintained
+
+---
+
 ## 🚨 CRITICAL BUG FIX: Fisher z Prior Parameters (2026-02-12 22:40) 🚨
 
 **URGENT UPDATE - Parameter Passing Bug Fixed!**  
@@ -12,7 +33,7 @@
 📖 **READ IMMEDIATELY:** [CRITICAL_FISHER_Z_BUG_FIX.md](CRITICAL_FISHER_Z_BUG_FIX.md) - English  
 📖 **立即阅读:** [CRITICAL_FISHER_Z_BUG_FIX_CN.md](CRITICAL_FISHER_Z_BUG_FIX_CN.md) - 中文详细说明  
 
-**Fisher z NOW works correctly with UI defaults (μ_z=0, σ_z=1.5)!**
+**Fisher z NOW works correctly with informative defaults (μ_z=0.5365, σ_z=0.2173)!**
 
 ---
 
