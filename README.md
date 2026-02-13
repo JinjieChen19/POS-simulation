@@ -1,5 +1,26 @@
 # Bayesian Probability of Success (PoS) Simulation - R Shiny Application
 
+## 🚀 READY FOR shinyapps.io DEPLOYMENT (2026-02-13)
+
+**Three-file structure for easy deployment:**
+- **global.R** - Shared code, libraries, helper functions
+- **ui.R** - User interface (4 tabs)
+- **server.R** - Server logic, Stan model execution
+
+📖 **Complete Guide:** [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)  
+🚀 **Quick Deploy:**
+```r
+library(rsconnect)
+rsconnect::deployApp(appFiles = c("global.R", "ui.R", "server.R"))
+```
+
+**✅ FIX APPLIED:** "invalid connection" error on shinyapps.io resolved!
+- Disabled `rstan_options(auto_write = TRUE)` for cloud compatibility
+- Stan models now compile in memory (no disk writes)
+- 📖 **Details:** [SHINYAPPS_FIX.md](SHINYAPPS_FIX.md)
+
+---
+
 ## 📱 NEW: Simplified Version Available! (2026-02-13)
 
 **Streamlined app without Help and Model Description tabs:**
