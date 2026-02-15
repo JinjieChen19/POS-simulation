@@ -62,7 +62,7 @@ cat("Prior changes will NOT require recompilation.\n\n")
 UNIVERSAL_STAN_MODEL <- NULL
 
 # Check if stan file exists
-stan_file_path <- "stan_universal_model_optimized.stan"
+stan_file_path <- "stan_universal_model.stan"
 
 if (file.exists(stan_file_path)) {
   cat("Found Stan model file:", stan_file_path, "\n")
@@ -91,13 +91,13 @@ if (file.exists(stan_file_path)) {
     cat("✗ ERROR: Failed to compile Stan model!\n")
     cat("Error message:", e$message, "\n")
     cat("\nThe app will not function without the compiled model.\n")
-    cat("Please check the stan_universal_model_optimized.stan file and try again.\n")
+    cat("Please check the stan_universal_model.stan file and try again.\n")
     stop("Stan model compilation failed")
   })
   
 } else {
   cat("✗ ERROR: Stan model file not found:", stan_file_path, "\n")
-  cat("Please ensure stan_universal_model_optimized.stan is in the working directory.\n")
+  cat("Please ensure stan_universal_model.stan is in the working directory.\n")
   stop("Stan model file not found")
 }
 
@@ -181,7 +181,7 @@ prepare_historical_loghr_data <- function(seed = 20260212,
 # Converts prior specifications and trial data into Stan data list
 # This allows priors to be changed without recompilation!
 # ===========================================================================
-prepare_stan_data <- function(historical_data, current_trial_data, prior_specs, target_os = 0, target_pfs = 0) {
+prepare_stan_data <- function(historical_data, current_trial_data, prior_specs) {
   K <- nrow(historical_data)
   
   # Historical trials
@@ -207,10 +207,6 @@ prepare_stan_data <- function(historical_data, current_trial_data, prior_specs, 
     W_hist = W_hist,
     y_curr = y_curr,
     W_curr = W_curr,
-    
-    # TARGET THRESHOLDS for PoS calculation
-    target_os = target_os,
-    target_pfs = target_pfs,
     
     # Prior parameters for mu
     prior_mu_os_mean = prior_specs$mu_os_mean,

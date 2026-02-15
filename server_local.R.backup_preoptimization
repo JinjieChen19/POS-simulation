@@ -139,9 +139,7 @@ function(input, output, session) {
       stan_data <- prepare_stan_data(
         historical_data = historical_data(),
         current_trial_data = current_trial,
-        prior_specs = prior_specs,
-        target_os = input$target_os,      # User-specified target
-        target_pfs = input$target_pfs     # User-specified target
+        prior_specs = prior_specs
       )
       
       incProgress(0.3, detail = "Starting MCMC sampling...")
@@ -293,53 +291,39 @@ function(input, output, session) {
   })
   
   # ===========================================================================
-  # PROBABILITY OF SUCCESS (PoS) WITH TARGET THRESHOLDS
+  # PROBABILITY OF SUCCESS (PoS)
   # ===========================================================================
   
   output$pos_output <- renderPrint({
     req(results$posterior_samples)
-    req(input$target_os, input$target_pfs)
     
-    # Calculate PoS using TARGET THRESHOLDS from Stan model
-    # These are calculated in generated quantities
-    pos_os <- mean(results$posterior_samples$pos_os_indicator)
-    pos_pfs <- mean(results$posterior_samples$pos_pfs_indicator)
-    pos_joint <- mean(results$posterior_samples$pos_joint_indicator)
+    # Calculate PoS: Pr(HR < 1) = Pr(log(HR) < 0)
+    pos_os <- mean(results$posterior_samples$theta_os_post < 0)
+    pos_pfs <- mean(results$posterior_samples$theta_pfs_post < 0)
     
-    # Also calculate traditional PoS (HR < 1) for comparison
-    pos_os_trad <- mean(results$posterior_samples$theta_os_post < 0)
-    pos_pfs_trad <- mean(results$posterior_samples$theta_pfs_post < 0)
-    
-    cat("Probability of Success (PoS) with Target Thresholds\n")
-    cat(strrep("=", 70), "\n\n")
+    cat("Probability of Success (PoS)\n")
+    cat(strrep("=", 60), "\n\n")
     cat("Based on", nrow(results$posterior_samples), "posterior samples\n\n")
     
     cat("Overall Survival (OS):\n")
-    cat("  TARGET: log(HR) < ", input$target_os, " (HR < ", round(exp(input$target_os), 3), ")\n", sep = "")
-    cat("  PoS = Pr(log HR_OS < target) = ", sprintf("%.1f%%", pos_os * 100), "\n")
-    cat("  Traditional PoS (HR < 1) = ", sprintf("%.1f%%", pos_os_trad * 100), "\n")
+    cat("  PoS = Pr(HR_OS < 1) = ", sprintf("%.1f%%", pos_os * 100), "\n")
     cat("  Posterior mean log(HR): ", round(mean(results$posterior_samples$theta_os_post), 3), "\n")
     cat("  95% CI: [", round(quantile(results$posterior_samples$theta_os_post, 0.025), 3),
         ",", round(quantile(results$posterior_samples$theta_os_post, 0.975), 3), "]\n\n")
     
     cat("Progression-Free Survival (PFS):\n")
-    cat("  TARGET: log(HR) < ", input$target_pfs, " (HR < ", round(exp(input$target_pfs), 3), ")\n", sep = "")
-    cat("  PoS = Pr(log HR_PFS < target) = ", sprintf("%.1f%%", pos_pfs * 100), "\n")
-    cat("  Traditional PoS (HR < 1) = ", sprintf("%.1f%%", pos_pfs_trad * 100), "\n")
+    cat("  PoS = Pr(HR_PFS < 1) = ", sprintf("%.1f%%", pos_pfs * 100), "\n")
     cat("  Posterior mean log(HR): ", round(mean(results$posterior_samples$theta_pfs_post), 3), "\n")
     cat("  95% CI: [", round(quantile(results$posterior_samples$theta_pfs_post, 0.025), 3),
         ",", round(quantile(results$posterior_samples$theta_pfs_post, 0.975), 3), "]\n\n")
     
-    cat("Joint PoS (both OS and PFS meet targets):\n")
-    cat("  PoS_joint = ", sprintf("%.1f%%", pos_joint * 100), "\n\n")
-    
     cat("Interpretation:\n")
     if (pos_os >= 0.80) {
-      cat("  High PoS for OS (≥80%) - Strong evidence target will be met\n")
+      cat("  High PoS for OS (≥80%) - Strong evidence of benefit\n")
     } else if (pos_os >= 0.50) {
-      cat("  Moderate PoS for OS (50-80%) - Some evidence target will be met\n")
+      cat("  Moderate PoS for OS (50-80%) - Some evidence of benefit\n")
     } else {
-      cat("  Low PoS for OS (<50%) - Weak evidence target will be met\n")
+      cat("  Low PoS for OS (<50%) - Weak evidence of benefit\n")
     }
   })
   
