@@ -127,9 +127,9 @@ navbarPage(
              
              mainPanel(
                h3("Model Status"),
-                verbatimTextOutput("model_status")
+                p(class = "text-info",
+             )
            )
-              )
   ),
   
   tabPanel("Results",
