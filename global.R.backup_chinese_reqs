@@ -1,10 +1,9 @@
 # ============================================================================
-# GLOBAL.R - Shared code for Bayesian PoS Simulation App (Enhanced for Deployment)
+# GLOBAL.R - Shared code for Bayesian PoS Simulation App
 # ============================================================================
 # This file contains code that runs once when the app starts up
 # - Libraries
-# - rstan configuration with smart core detection
-# - Model caching (.rds) to avoid re-compilation
+# - rstan configuration
 # - Helper functions
 # - Default values
 # ============================================================================
@@ -19,125 +18,12 @@ library(DT)
 library(gridExtra)
 library(MASS)
 
-# ===========================================================================
-# SMART MC.CORES CONFIGURATION
-# ===========================================================================
-# Detect available cores but respect VM limits
-# For Fly.io and similar platforms: typically 1 vCPU
-# For local development: use multiple cores
-# ===========================================================================
-
-# Function to safely detect and set mc.cores
-safe_set_mc_cores <- function() {
-  # Detect total cores
-  total_cores <- parallel::detectCores()
-  
-  # Check if we're in a constrained environment (Fly.io, Docker, etc.)
-  # Heuristic: if total_cores is 1 or if we detect container environment
-  is_container <- file.exists("/.dockerenv") || 
-                  Sys.getenv("FLY_APP_NAME") != "" ||
-                  Sys.getenv("DYNO") != ""  # Also check for Heroku
-  
-  if (is_container || total_cores == 1) {
-    # Force single-core in containers
-    mc_cores <- 1
-    message("Container environment detected. Using single-core mode (mc.cores = 1)")
-  } else {
-    # For local/development: use all cores but cap at reasonable limit
-    # Leave 1 core free for system
-    mc_cores <- max(1, min(total_cores - 1, 4))  # Cap at 4 cores
-    message(sprintf("Local environment detected. Using %d cores (out of %d available)", mc_cores, total_cores))
-  }
-  
-  # Set the option
-  options(mc.cores = mc_cores)
-  
-  # Also set environment variables for Stan
-  Sys.setenv(STAN_NUM_THREADS = as.character(mc_cores))
-  Sys.setenv(OMP_NUM_THREADS = as.character(mc_cores))
-  
-  return(mc_cores)
-}
-
-# Execute smart core detection
-current_mc_cores <- safe_set_mc_cores()
-
-# Disable auto_write (required for shinyapps.io and Fly.io)
-rstan_options(auto_write = FALSE)
-
-# ===========================================================================
-# STAN MODEL CACHING SYSTEM
-# ===========================================================================
-# Pre-compiled models are saved as .rds files to avoid re-compilation
-# This significantly speeds up app startup on subsequent runs
-# ===========================================================================
-
-# Cache directory for compiled models
-CACHE_DIR <- file.path(getwd(), "cache")
-if (!dir.exists(CACHE_DIR)) {
-  dir.create(CACHE_DIR, recursive = TRUE, showWarnings = FALSE)
-}
-
-# Function to get cache file path for a model
-get_cache_path <- function(model_hash) {
-  file.path(CACHE_DIR, paste0("stan_model_", model_hash, ".rds"))
-}
-
-# Function to compute hash for model code
-compute_model_hash <- function(stan_code) {
-  # Create a deterministic hash from the model code
-  digest::digest(stan_code, algo = "md5")
-}
-
-# Function to get or compile Stan model with caching
-get_stan_model_cached <- function(stan_code, verbose = FALSE) {
-  # Check if digest package is available (for hashing)
-  if (!requireNamespace("digest", quietly = TRUE)) {
-    warning("Package 'digest' not installed. Model caching disabled.")
-    # Fall back to direct compilation
-    return(stan_model(model_code = stan_code, verbose = verbose))
-  }
-  
-  # Compute hash of model code
-  model_hash <- compute_model_hash(stan_code)
-  cache_path <- get_cache_path(model_hash)
-  
-  # Check if cached model exists
-  if (file.exists(cache_path)) {
-    if (verbose) {
-      message(sprintf("Loading pre-compiled Stan model from cache: %s", basename(cache_path)))
-    }
-    tryCatch({
-      compiled_model <- readRDS(cache_path)
-      if (verbose) {
-        message("✓ Successfully loaded cached model")
-      }
-      return(compiled_model)
-    }, error = function(e) {
-      warning(sprintf("Failed to load cached model: %s. Re-compiling...", e$message))
-      # Fall through to compilation
-    })
-  }
-  
-  # Model not in cache or failed to load - compile it
-  if (verbose) {
-    message("Compiling Stan model (this may take 1-2 minutes)...")
-  }
-  
-  compiled_model <- stan_model(model_code = stan_code, verbose = verbose)
-  
-  # Save to cache
-  tryCatch({
-    saveRDS(compiled_model, cache_path)
-    if (verbose) {
-      message(sprintf("✓ Model cached to: %s", basename(cache_path)))
-    }
-  }, error = function(e) {
-    warning(sprintf("Failed to cache model: %s", e$message))
-  })
-  
-  return(compiled_model)
-}
+# Set rstan options for shinyapps.io compatibility
+# CRITICAL: shinyapps.io requires single-core execution
+options(mc.cores = 1)  # Force single-core (required for shinyapps.io)
+Sys.setenv(STAN_NUM_THREADS = "1")  # Disable Stan threading
+Sys.setenv(OMP_NUM_THREADS = "1")   # Disable OpenMP threading
+rstan_options(auto_write = FALSE)   # Disable auto-write (already done, but explicit)
 
 # ===========================================================================
 # FISHER-Z PRIOR DEFAULTS
@@ -326,12 +212,3 @@ generated quantities {
   
   return(stan_code)
 }
-
-# ===========================================================================
-# STARTUP MESSAGE
-# ===========================================================================
-message("=== Bayesian PoS Simulation - Enhanced Global Configuration ===")
-message(sprintf("✓ mc.cores set to: %d", current_mc_cores))
-message(sprintf("✓ Model caching enabled in: %s", CACHE_DIR))
-message("✓ Smart core detection active")
-message("================================================================")

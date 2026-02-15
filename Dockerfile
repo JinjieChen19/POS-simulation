@@ -1,35 +1,59 @@
 # =============================================================================
-# Dockerfile for Bayesian PoS Simulation (Fly.io Optimized)
+# Dockerfile for Bayesian PoS Simulation (Fly.io Deployment)
 # =============================================================================
-# This Dockerfile creates a container suitable for Fly.io deployment
-# - Based on rocker/r-ver with rstan pre-installed
-# - Single-core configuration for container safety
-# - Pre-compiles Stan models at build time
+# Based on requirements from Chinese deployment guide:
+# - Use rocker/shiny-verse:latest as base
+# - Install system deps: libv8-dev, libnode-dev, clang
+# - Install R packages via remotes::install_cran
+# - Optimize Stan compilation with CXXFLAGS
 # =============================================================================
 
-FROM rocker/r-ver:4.3.2
+FROM rocker/shiny-verse:latest
 
-# Install system dependencies
+# =============================================================================
+# IMPORTANT: Stan Compilation Optimization
+# =============================================================================
+# For production Stan models, set CXXFLAGS to optimize compilation:
+# ENV CXXFLAGS="-O3 -march=native"
+# This significantly speeds up Stan model execution but may reduce portability.
+# Uncomment above line for maximum performance on the target hardware.
+# =============================================================================
+
+# Install system dependencies required for rstan and app
+# - libv8-dev: Required for V8 JavaScript engine
+# - libnode-dev: Node.js development files
+# - clang: Alternative C++ compiler (can improve Stan compilation)
+# - Additional dependencies for rstan and tidyverse
 RUN apt-get update && apt-get install -y \
+    libv8-dev \
+    libnode-dev \
+    clang \
     libcurl4-openssl-dev \
     libssl-dev \
     libxml2-dev \
-    libv8-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Install R packages
-RUN R -e "install.packages(c('shiny', 'shinythemes', 'tidyverse', 'rstan', 'bayesplot', 'DT', 'gridExtra', 'MASS'), repos='https://cloud.r-project.org/')"
+# Install R packages using remotes::install_cran for better dependency resolution
+# This ensures all package dependencies are properly installed
+# Note: 'digest' is included for model caching functionality
+RUN R -e "install.packages('remotes', repos='https://cloud.r-project.org/')" && \
+    R -e "remotes::install_cran(c('shiny', 'shinythemes', 'tidyverse', 'rstan', 'bayesplot', 'DT', 'gridExtra', 'MASS', 'digest'), repos='https://cloud.r-project.org/')"
 
 # Create app directory
 WORKDIR /app
 
 # Copy application files
-COPY global_flyio.R /app/global.R
-COPY server_flyio.R /app/server.R
-COPY ui_flyio.R /app/ui.R
+# Note: Using the standard files (global.R, server.R, ui.R)
+# These should be the production-ready versions
+COPY global.R /app/global.R
+COPY server.R /app/server.R
+COPY ui.R /app/ui.R
 
-# Expose port 3838 (Fly.io standard)
+# Create cache directory for pre-compiled Stan models
+RUN mkdir -p /app/cache
+
+# Expose port 3838 (Shiny default, configured in fly.toml)
 EXPOSE 3838
 
-# Run app on 0.0.0.0:3838 (Fly.io requirement)
+# Run Shiny app on 0.0.0.0:3838 (required for Fly.io)
 CMD ["R", "-e", "shiny::runApp('/app', host='0.0.0.0', port=3838)"]
