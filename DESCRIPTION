@@ -1,0 +1,42 @@
+Package: POSsimulation
+Type: Package
+Title: Bayesian Probability of Success (PoS) Simulation for Oncology Trials
+Version: 1.0.0
+Authors@R: c(
+    person("Jinjie", "Chen", email = "jinjie.chen@example.com", role = c("aut", "cre"))
+    )
+Description: An interactive Shiny application for simulating and calculating 
+    Bayesian Probability of Success (PoS) for oncology clinical trials. The app
+    uses hierarchical Bayesian models with Stan to incorporate historical trial
+    data and current trial information for OS (Overall Survival) and PFS 
+    (Progression-Free Survival) endpoints. Features include customizable priors,
+    data generation, and real-time MCMC diagnostics.
+License: MIT + file LICENSE
+Encoding: UTF-8
+LazyData: true
+Depends:
+    R (>= 4.0.0)
+Imports:
+    shiny (>= 1.7.0),
+    rstan (>= 2.21.0),
+    shinythemes,
+    shinymanager,
+    tidyverse,
+    dplyr,
+    ggplot2,
+    bayesplot,
+    DT,
+    gridExtra,
+    MASS,
+    digest
+Suggests:
+    devtools,
+    roxygen2,
+    knitr,
+    rmarkdown,
+    testthat (>= 3.0.0)
+SystemRequirements: C++14
+RoxygenNote: 7.2.0
+VignetteBuilder: knitr
+URL: https://github.com/JinjieChen19/POS-simulation
+BugReports: https://github.com/JinjieChen19/POS-simulation/issues
