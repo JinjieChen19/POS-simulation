@@ -127,7 +127,7 @@ navbarPage(
              
              mainPanel(
                h3("Model Status"),
-                p(class = "text-info",
+               verbatimTextOutput("model_status")
              )
            )
   ),

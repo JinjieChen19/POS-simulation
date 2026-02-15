@@ -151,6 +151,34 @@ mu_z_default <- (atanh(rho_L) + atanh(rho_U)) / 2  # 0.5365
 sd_z_default <- (atanh(rho_U) - atanh(rho_L)) / (2 * 1.96)  # 0.2173
 
 # ===========================================================================
+# PRE-COMPILED MODEL LOADING
+# ===========================================================================
+# Load pre-compiled DEFAULT Stan model if available
+# This eliminates 1-2 minutes of compilation time on startup
+# ===========================================================================
+DEFAULT_MODEL_FILE <- "bayesian_pos_model.rds"
+precompiled_model <- NULL
+
+if (file.exists(DEFAULT_MODEL_FILE)) {
+  cat("Loading pre-compiled Stan model from:", DEFAULT_MODEL_FILE, "\n")
+  tryCatch({
+    precompiled_model <- readRDS(DEFAULT_MODEL_FILE)
+    cat("✓ Pre-compiled model loaded successfully!\n")
+    cat("  This eliminates 1-2 minutes of compilation time.\n")
+    cat("  Model uses default priors: fisher_z + exponential\n")
+  }, error = function(e) {
+    warning(sprintf("Failed to load pre-compiled model: %s", e$message))
+    cat("  Will compile model on-demand when needed.\n")
+    precompiled_model <<- NULL
+  })
+} else {
+  cat("Note: Pre-compiled model not found.\n")
+  cat("  To pre-compile the DEFAULT model for faster startup:\n")
+  cat("  Run: R -e \"source('precompile_model.R')\"\n")
+  cat("  Models will be compiled on-demand (slower first run).\n")
+}
+
+# ===========================================================================
 # DATA GENERATION FUNCTION
 # ===========================================================================
 # Generates historical trial data using hierarchical model

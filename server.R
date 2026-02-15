@@ -70,18 +70,15 @@ function(input, output, session) {
       cat("Total samples:", input$n_iter * input$n_chains, "\n")
     })
     
-    # Build Stan model
-    stan_code <- build_stan_model_improved(
-      prior_mu_os_mean = input$prior_mu_os_mean,
-      prior_mu_os_sd = input$prior_mu_os_sd,
-      prior_mu_pfs_mean = input$prior_mu_pfs_mean,
-      prior_mu_pfs_sd = input$prior_mu_pfs_sd,
-      prior_tau_type = input$prior_tau_type,
-      prior_tau_param_os = input$prior_tau_param_os,
-      prior_tau_param_pfs = input$prior_tau_param_pfs,
-      prior_rho_type = input$prior_rho_type,
-      prior_rho_param = input$prior_rho_param,
-      prior_rho_param2 = input$prior_rho_param2
+    # Check if we're using DEFAULT configuration (can use pre-compiled model)
+    using_defaults <- (
+      input$prior_mu_os_mean == -0.35 && input$prior_mu_os_sd == 1.0 &&
+      input$prior_mu_pfs_mean == -0.45 && input$prior_mu_pfs_sd == 1.0 &&
+      input$prior_tau_type == "exponential" &&
+      input$prior_tau_param_os == 1 && input$prior_tau_param_pfs == 1 &&
+      input$prior_rho_type == "fisher_z" &&
+      abs(input$prior_rho_param - mu_z_default) < 0.001 &&
+      abs(input$prior_rho_param2 - sd_z_default) < 0.001
     )
     
     # Prepare data for Stan
@@ -113,15 +110,49 @@ function(input, output, session) {
     
     # Fit model with enhanced error handling
     tryCatch({
-      fit <- stan(
-        model_code = stan_code,
-        data = stan_data,
-        iter = input$n_iter,
-        chains = input$n_chains,
-        control = list(adapt_delta = input$adapt_delta, max_treedepth = input$max_treedepth),
-        verbose = FALSE,
-        refresh = 0  # Suppress output to avoid connection issues
-      )
+      # Use pre-compiled model if available and using defaults
+      if (using_defaults && !is.null(precompiled_model)) {
+        cat("Using pre-compiled model (DEFAULT configuration)\n")
+        fit <- sampling(
+          precompiled_model,
+          data = stan_data,
+          iter = input$n_iter,
+          chains = input$n_chains,
+          control = list(adapt_delta = input$adapt_delta, max_treedepth = input$max_treedepth),
+          verbose = FALSE,
+          refresh = 0
+        )
+      } else {
+        # Build and compile model for non-default settings
+        if (!using_defaults) {
+          cat("Using custom prior settings - compiling model...\n")
+        } else {
+          cat("Pre-compiled model not available - compiling on-demand...\n")
+        }
+        
+        stan_code <- build_stan_model_improved(
+          prior_mu_os_mean = input$prior_mu_os_mean,
+          prior_mu_os_sd = input$prior_mu_os_sd,
+          prior_mu_pfs_mean = input$prior_mu_pfs_mean,
+          prior_mu_pfs_sd = input$prior_mu_pfs_sd,
+          prior_tau_type = input$prior_tau_type,
+          prior_tau_param_os = input$prior_tau_param_os,
+          prior_tau_param_pfs = input$prior_tau_param_pfs,
+          prior_rho_type = input$prior_rho_type,
+          prior_rho_param = input$prior_rho_param,
+          prior_rho_param2 = input$prior_rho_param2
+        )
+        
+        fit <- stan(
+          model_code = stan_code,
+          data = stan_data,
+          iter = input$n_iter,
+          chains = input$n_chains,
+          control = list(adapt_delta = input$adapt_delta, max_treedepth = input$max_treedepth),
+          verbose = FALSE,
+          refresh = 0  # Suppress output to avoid connection issues
+        )
+      }
       
       results$fit <- fit
       results$posterior_samples <- as.data.frame(fit)
