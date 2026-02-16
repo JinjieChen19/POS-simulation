@@ -141,7 +141,8 @@ function(input, output, session) {
         current_trial_data = current_trial,
         prior_specs = prior_specs,
         target_os = input$target_os,      # User-specified target
-        target_pfs = input$target_pfs     # User-specified target
+        # PFS has already been read out when predicting OS success
+        target_pfs = 0                     # Fixed value, not user input
       )
       
       incProgress(0.3, detail = "Starting MCMC sampling...")
@@ -298,7 +299,7 @@ function(input, output, session) {
   
   output$pos_output <- renderPrint({
     req(results$posterior_samples)
-    req(input$target_os, input$target_pfs)
+    req(input$target_os)
     
     # Calculate PoS using TARGET THRESHOLDS from Stan model
     # These are calculated in generated quantities
@@ -310,7 +311,7 @@ function(input, output, session) {
     pos_os_trad <- mean(results$posterior_samples$theta_os_post < 0)
     pos_pfs_trad <- mean(results$posterior_samples$theta_pfs_post < 0)
     
-    cat("Probability of Success (PoS) with Target Thresholds\n")
+    cat("Probability of Success (PoS) with Target Threshold\n")
     cat(strrep("=", 70), "\n\n")
     cat("Based on", nrow(results$posterior_samples), "posterior samples\n\n")
     
@@ -322,16 +323,11 @@ function(input, output, session) {
     cat("  95% CI: [", round(quantile(results$posterior_samples$theta_os_post, 0.025), 3),
         ",", round(quantile(results$posterior_samples$theta_os_post, 0.975), 3), "]\n\n")
     
-    cat("Progression-Free Survival (PFS):\n")
-    cat("  TARGET: log(HR) < ", input$target_pfs, " (HR < ", round(exp(input$target_pfs), 3), ")\n", sep = "")
-    cat("  PoS = Pr(log HR_PFS < target) = ", sprintf("%.1f%%", pos_pfs * 100), "\n")
-    cat("  Traditional PoS (HR < 1) = ", sprintf("%.1f%%", pos_pfs_trad * 100), "\n")
+    cat("Progression-Free Survival (PFS - Already Observed):\n")
     cat("  Posterior mean log(HR): ", round(mean(results$posterior_samples$theta_pfs_post), 3), "\n")
     cat("  95% CI: [", round(quantile(results$posterior_samples$theta_pfs_post, 0.025), 3),
-        ",", round(quantile(results$posterior_samples$theta_pfs_post, 0.975), 3), "]\n\n")
-    
-    cat("Joint PoS (both OS and PFS meet targets):\n")
-    cat("  PoS_joint = ", sprintf("%.1f%%", pos_joint * 100), "\n\n")
+        ",", round(quantile(results$posterior_samples$theta_pfs_post, 0.975), 3), "]\n")
+    cat("  Note: PFS data is already observed; showing posterior for reference.\n\n")
     
     cat("Interpretation:\n")
     if (pos_os >= 0.80) {

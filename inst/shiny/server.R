@@ -109,7 +109,8 @@ function(input, output, session) {
       
       # Target thresholds for PoS calculation
       target_os = input$target_os,
-      target_pfs = input$target_pfs
+      # PFS has already been read out when predicting OS success
+      target_pfs = 0  # Fixed value, not user input
     )
     
     # Fit model with enhanced error handling

@@ -123,13 +123,11 @@ navbarPage(
                
                hr(),
                
-               h3("PoS Target Thresholds"),
-               helpText("Define success criteria for Probability of Success calculation"),
-               fluidRow(
-                 column(6, numericInput("target_os", "OS Target log(HR):", value = -0.30, step = 0.05)),
-                 column(6, numericInput("target_pfs", "PFS Target log(HR):", value = 0, step = 0.05))
-               ),
-               helpText("PoS = Pr(log HR < target). Example: -0.30 means HR < 0.74 (26% reduction)"),
+               h3("PoS Target Threshold"),
+               helpText("Define success criterion for OS Probability of Success"),
+               numericInput("target_os", "OS Target log(HR):", value = -0.30, step = 0.05),
+               helpText("PoS = Pr(log HR_OS < target). Example: -0.30 means HR < 0.74 (26% reduction)"),
+               helpText("Note: PFS data is already observed when predicting OS success."),
                
                hr(),
                actionButton("run_model", "Run Stan Model", class = "btn-primary btn-lg", icon = icon("play"))
