@@ -62,6 +62,18 @@ run_pos_app_authenticated()
 
 ## Troubleshooting
 
+### GitHub Authentication Error (401)
+
+If you get `HTTP error 401. Bad credentials`:
+
+**Quick fix (if repo is public):**
+```r
+Sys.unsetenv("GITHUB_PAT")
+devtools::install_github("JinjieChen19/POS-simulation")
+```
+
+**Full guide:** See `GITHUB_PAT_FIX.md`
+
 ### C++ Compiler Not Found
 
 **Windows**:

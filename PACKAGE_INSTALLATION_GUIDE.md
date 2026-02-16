@@ -104,6 +104,28 @@ run_pos_app_authenticated()
 
 ## Troubleshooting
 
+### Problem: GitHub Authentication Error (401)
+
+**Error message:**
+```
+HTTP error 401. Bad credentials
+```
+
+**Quick Solution** (if repository is public):
+```r
+# Clear any PAT
+Sys.unsetenv("GITHUB_PAT")
+
+# Install without authentication
+devtools::install_github("JinjieChen19/POS-simulation")
+```
+
+**For private repositories:**
+See detailed guide in `GITHUB_PAT_FIX.md` for:
+- How to generate a GitHub Personal Access Token (PAT)
+- How to configure it properly
+- Multiple authentication methods
+
 ### Problem: "Could not find function 'run_pos_app'"
 
 **Solution**: Load the library first
