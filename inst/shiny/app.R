@@ -1093,7 +1093,7 @@ server <- function(input, output, session) {
     req(results$fit)
     
     # Create trace plots for key parameters
-    mcmc_trace(results$fit, pars = c("mu_os", "mu_pfs", "tau_os", "tau_pfs", "rho", "theta_os_post")) +
+    bayesplot::mcmc_trace(results$fit, pars = c("mu_os", "mu_pfs", "tau_os", "tau_pfs", "rho", "theta_os_post")) +
       labs(title = "MCMC Trace Plots - Convergence Diagnostics") +
       theme_minimal(base_size = 12)
   })

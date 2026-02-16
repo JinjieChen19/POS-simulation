@@ -204,7 +204,7 @@ function(input, output, session) {
     req(results$fit)
     
     posterior <- as.array(results$fit)
-    mcmc_trace(posterior, pars = c("mu[1]", "mu[2]", "tau_os", "tau_pfs", "rho_out")) +
+    bayesplot::mcmc_trace(posterior, pars = c("mu[1]", "mu[2]", "tau_os", "tau_pfs", "rho_out")) +
       ggtitle("MCMC Trace Plots") +
       theme_minimal()
   })

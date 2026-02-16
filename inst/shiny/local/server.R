@@ -240,7 +240,7 @@ function(input, output, session) {
     
     params_to_plot <- c("mu[1]", "mu[2]", "tau_os", "tau_pfs", "rho_out")
     
-    mcmc_trace(
+    bayesplot::mcmc_trace(
       as.array(results$fit),
       pars = params_to_plot,
       facet_args = list(ncol = 2)
