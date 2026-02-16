@@ -21,7 +21,17 @@
 #' }
 #'
 #' @export
-#' @importFrom shiny runApp
+#' @import rstan
+#' @import shiny
+#' @import shinythemes
+#' @import shinymanager
+#' @import dplyr
+#' @import ggplot2
+#' @import bayesplot
+#' @import DT
+#' @import gridExtra
+#' @import MASS
+#' @import digest
 run_pos_app <- function(host = "127.0.0.1", port = 3838, launch.browser = TRUE, ...) {
   app_dir <- system.file("shiny", package = "POSsimulation")
   
