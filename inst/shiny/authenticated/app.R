@@ -4,11 +4,12 @@
 # This version adds username/password protection using the shinymanager package
 # Perfect for deploying on your own server with controlled team access
 #
+# NOTE: When running as part of POSsimulation package, all dependencies are
+# already loaded via NAMESPACE. Library calls are removed to prevent conflicts.
+#
 # Requirements:
-# install.packages("shinymanager")
-
-library(shiny)
-library(shinymanager)
+# - shinymanager package must be installed
+# - Listed in DESCRIPTION file Imports
 
 # =============================================================================
 # AUTHENTICATION SETUP

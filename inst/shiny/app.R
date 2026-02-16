@@ -4,19 +4,14 @@
 # Interactive interface for running full Bayesian PoS model for OS
 # Based on bayesian_pos_fixed current rho
 # ============================================================================
-
-library(shiny)
-library(shinythemes)
-library(tidyverse)
-library(rstan)
-library(bayesplot)
-library(DT)
-library(gridExtra)
-library(MASS)
+#
+# NOTE: When running as part of POSsimulation package, all dependencies are
+# already loaded via NAMESPACE. Library calls are removed to prevent conflicts.
+# ============================================================================
 
 # Set rstan options for better performance
 options(mc.cores = parallel::detectCores())
-rstan_options(auto_write = TRUE)
+rstan::rstan_options(auto_write = TRUE)
 
 # ===========================================================================
 # HELPER FUNCTIONS

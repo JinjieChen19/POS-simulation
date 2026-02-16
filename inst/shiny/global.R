@@ -2,22 +2,15 @@
 # GLOBAL.R - Shared code for Bayesian PoS Simulation App (Enhanced for Deployment)
 # ============================================================================
 # This file contains code that runs once when the app starts up
-# - Libraries
 # - rstan configuration with smart core detection
 # - Model caching (.rds) to avoid re-compilation
 # - Helper functions
 # - Default values
 # ============================================================================
-
-# Load required libraries
-library(shiny)
-library(shinythemes)
-library(tidyverse)
-library(rstan)
-library(bayesplot)
-library(DT)
-library(gridExtra)
-library(MASS)
+#
+# NOTE: When running as part of POSsimulation package, all dependencies are
+# already loaded via NAMESPACE. Library calls are removed to prevent conflicts.
+# ============================================================================
 
 # ===========================================================================
 # SMART MC.CORES CONFIGURATION
