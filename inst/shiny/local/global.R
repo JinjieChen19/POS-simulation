@@ -7,9 +7,21 @@
 # - Single Stan model compilation (faster for multiple users)
 # - Progress display during MCMC sampling
 # ============================================================================
-#
-# NOTE: When running as part of POSsimulation package, all dependencies are
-# already loaded via NAMESPACE. Library calls are removed to prevent conflicts.
+
+# Load required packages
+# NOTE: Shiny app files in inst/ need explicit library() calls because they
+# don't automatically access the package NAMESPACE imports
+library(shiny)
+library(shinythemes)
+library(rstan)
+library(bayesplot)
+library(DT)
+library(dplyr)
+library(ggplot2)
+library(gridExtra)
+library(MASS)
+library(digest)
+
 # ============================================================================
 
 cat("=== Bayesian PoS Simulation - Local Server Version ===\n")

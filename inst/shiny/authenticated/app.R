@@ -3,10 +3,22 @@
 # 
 # This version adds username/password protection using the shinymanager package
 # Perfect for deploying on your own server with controlled team access
-#
-# NOTE: When running as part of POSsimulation package, all dependencies are
-# already loaded via NAMESPACE. Library calls are removed to prevent conflicts.
-#
+
+# Load required packages
+# NOTE: Shiny app files in inst/ need explicit library() calls because they
+# don't automatically access the package NAMESPACE imports
+library(shiny)
+library(shinymanager)
+library(shinythemes)
+library(rstan)
+library(bayesplot)
+library(DT)
+library(dplyr)
+library(ggplot2)
+library(gridExtra)
+library(MASS)
+library(digest)
+
 # Requirements:
 # - shinymanager package must be installed
 # - Listed in DESCRIPTION file Imports
