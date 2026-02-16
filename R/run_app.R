@@ -25,6 +25,7 @@
 #' @import shiny
 #' @import shinythemes
 #' @import shinymanager
+#' @import tidyverse
 #' @import dplyr
 #' @import ggplot2
 #' @import bayesplot

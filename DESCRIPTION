@@ -21,6 +21,7 @@ Imports:
     rstan (>= 2.21.0),
     shinythemes (>= 1.2.0),
     shinymanager (>= 1.0.0),
+    tidyverse (>= 1.3.0),
     dplyr (>= 1.0.0),
     ggplot2 (>= 3.3.0),
     bayesplot (>= 1.8.0),
