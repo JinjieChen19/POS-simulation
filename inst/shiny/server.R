@@ -253,13 +253,21 @@ function(input, output, session) {
   # Probability of Success
   output$pos_output <- renderPrint({
     req(results$posterior_samples)
+    req(input$target_os)
     
     theta_os_post <- results$posterior_samples$theta_os_post
-    pos <- mean(theta_os_post < 0)
+    
+    # Calculate PoS using user-specified target threshold
+    pos <- mean(theta_os_post < input$target_os)
+    
+    # Also calculate traditional PoS (HR < 1) for comparison
+    pos_trad <- mean(theta_os_post < 0)
     
     cat("Probability of Success (PoS) for OS\n")
     cat(strrep("=", 60), "\n\n")
-    cat("PoS = P(θ_OS < 0 | data) = ", round(pos * 100, 2), "%\n\n", sep = "")
+    cat("TARGET: log(HR) < ", input$target_os, " (HR < ", round(exp(input$target_os), 3), ")\n", sep = "")
+    cat("PoS = P(θ_OS < ", input$target_os, " | data) = ", round(pos * 100, 2), "%\n", sep = "")
+    cat("Traditional PoS (HR < 1) = ", round(pos_trad * 100, 2), "%\n\n", sep = "")
     
     cat("Posterior Summary for θ_OS:\n")
     cat("  Mean:  ", round(mean(theta_os_post), 4), "\n")
