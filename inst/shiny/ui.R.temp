@@ -1,0 +1,8 @@
+# This is fixed version
+# Lines 128-133 should be:
+              mainPanel(
+                h3("Model Status"),
+                verbatimTextOutput("model_status")
+              )
+            )
+  ),

@@ -125,11 +125,11 @@ navbarPage(
                actionButton("run_model", "Run Stan Model", class = "btn-primary btn-lg", icon = icon("play"))
              ),
              
-              mainPanel(
-                h3("Model Status"),
-                verbatimTextOutput("model_status")
-              )
-            )
+             mainPanel(
+               h3("Model Status"),
+                p(class = "text-info",
+             )
+           )
   ),
   
   tabPanel("Results",
