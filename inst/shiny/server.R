@@ -105,7 +105,11 @@ function(input, output, session) {
       y_hist = y_hist,
       W_hist = W_hist,
       y_curr = y_curr,
-      W_curr = W_curr
+      W_curr = W_curr,
+      
+      # Target thresholds for PoS calculation
+      target_os = input$target_os,
+      target_pfs = input$target_pfs
     )
     
     # Fit model with enhanced error handling
