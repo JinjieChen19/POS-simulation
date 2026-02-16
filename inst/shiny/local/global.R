@@ -33,7 +33,7 @@ cat(sprintf("Using %d cores for Stan sampling\n", mc_cores))
 options(mc.cores = mc_cores)
 Sys.setenv(STAN_NUM_THREADS = as.character(mc_cores))
 Sys.setenv(OMP_NUM_THREADS = as.character(mc_cores))
-rstan_options(auto_write = FALSE)  # Better for shared server
+rstan::rstan_options(auto_write = FALSE)  # Better for shared server
 
 # ===========================================================================
 # UNIVERSAL STAN MODEL - COMPILE ONCE AT STARTUP

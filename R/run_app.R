@@ -26,13 +26,13 @@
 #' @import shinythemes
 #' @import shinymanager
 #' @import tidyverse
-#' @import dplyr
 #' @import ggplot2
 #' @import bayesplot
-#' @import DT
-#' @import gridExtra
-#' @import MASS
 #' @import digest
+#' @importFrom dplyr filter select mutate arrange summarise group_by ungroup bind_rows across everything
+#' @importFrom DT datatable renderDT DTOutput
+#' @importFrom gridExtra grid.arrange
+#' @importFrom MASS mvrnorm
 run_pos_app <- function(host = "127.0.0.1", port = 3838, launch.browser = TRUE, ...) {
   app_dir <- system.file("shiny", package = "POSsimulation")
   

@@ -56,7 +56,7 @@ safe_set_mc_cores <- function() {
 current_mc_cores <- safe_set_mc_cores()
 
 # Disable auto_write (required for shinyapps.io and Fly.io)
-rstan_options(auto_write = FALSE)
+rstan::rstan_options(auto_write = FALSE)
 
 # ===========================================================================
 # STAN MODEL CACHING SYSTEM
