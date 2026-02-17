@@ -48,61 +48,98 @@ Sys.setenv(OMP_NUM_THREADS = as.character(mc_cores))
 rstan::rstan_options(auto_write = FALSE)  # Better for shared server
 
 # ===========================================================================
-# UNIVERSAL STAN MODEL - COMPILE ONCE AT STARTUP
+# UNIVERSAL STAN MODEL - LOAD PRECOMPILED OR COMPILE
 # ===========================================================================
-# This is the KEY optimization for local server:
-# - Compile the universal model ONCE when server starts
-# - All users share this compiled model
+# OPTIMIZATION: Use precompiled Stan model for instant startup!
+# - First tries to load precompiled .rds file (< 1 second)
+# - Falls back to compilation if .rds not found (1-2 minutes)
+# - All users share this model
 # - Prior changes passed as DATA (no recompilation needed!)
-# - Eliminates 1-2 minute wait per user
 # ===========================================================================
 
 cat("\n")
-cat("=== Compiling Universal Stan Model ===\n")
-cat("This happens ONCE at server startup...\n")
-cat("All users will share this compiled model.\n")
-cat("Prior changes will NOT require recompilation.\n\n")
+cat("=== Loading Universal Stan Model ===\n")
 
 UNIVERSAL_STAN_MODEL <- NULL
 
-# Check if stan file exists
-stan_file_path <- "stan_universal_model_optimized.stan"
+# Try to load precompiled model first (FAST!)
+precompiled_path <- system.file("stan/stan_model_compiled.rds", package = "POSsimulation")
 
-if (file.exists(stan_file_path)) {
-  cat("Found Stan model file:", stan_file_path, "\n")
-  cat("Compiling (this may take 1-2 minutes)...\n")
+if (precompiled_path == "") {
+  # Not in package, try local path
+  precompiled_path <- "stan_model_compiled.rds"
+}
+
+if (file.exists(precompiled_path)) {
+  cat("Found precompiled model:", precompiled_path, "\n")
+  cat("Loading (this takes < 1 second)...\n")
   
-  compile_start <- Sys.time()
+  load_start <- Sys.time()
   
   tryCatch({
-    UNIVERSAL_STAN_MODEL <- stan_model(
-      file = stan_file_path,
-      model_name = "bayesian_pos_universal",
-      verbose = FALSE
-    )
+    UNIVERSAL_STAN_MODEL <- readRDS(precompiled_path)
     
-    compile_end <- Sys.time()
-    compile_time <- as.numeric(difftime(compile_end, compile_start, units = "secs"))
+    load_end <- Sys.time()
+    load_time <- as.numeric(difftime(load_end, load_start, units = "secs"))
     
     cat("\n")
-    cat("✓ Universal Stan model compiled successfully!\n")
-    cat(sprintf("  Compilation time: %.1f seconds\n", compile_time))
+    cat("✓ Precompiled Stan model loaded successfully!\n")
+    cat(sprintf("  Load time: %.2f seconds (100x faster than compiling!)\n", load_time))
     cat("  This model will be reused for all sessions.\n")
     cat("  Prior changes will be passed as data (no recompilation).\n")
     
   }, error = function(e) {
     cat("\n")
-    cat("✗ ERROR: Failed to compile Stan model!\n")
+    cat("✗ WARNING: Failed to load precompiled model\n")
     cat("Error message:", e$message, "\n")
-    cat("\nThe app will not function without the compiled model.\n")
-    cat("Please check the stan_universal_model_optimized.stan file and try again.\n")
-    stop("Stan model compilation failed")
+    cat("Will fall back to compilation...\n\n")
+    UNIVERSAL_STAN_MODEL <- NULL
   })
+}
+
+# Fall back to compilation if precompiled model not available
+if (is.null(UNIVERSAL_STAN_MODEL)) {
+  cat("\nPrecompiled model not found. Compiling from source...\n")
+  cat("(To avoid this wait, run: Rscript tools/precompile_stan_model.R)\n\n")
   
-} else {
-  cat("✗ ERROR: Stan model file not found:", stan_file_path, "\n")
-  cat("Please ensure stan_universal_model_optimized.stan is in the working directory.\n")
-  stop("Stan model file not found")
+  stan_file_path <- "stan_universal_model_optimized.stan"
+  
+  if (file.exists(stan_file_path)) {
+    cat("Found Stan model file:", stan_file_path, "\n")
+    cat("Compiling (this may take 1-2 minutes)...\n")
+    
+    compile_start <- Sys.time()
+    
+    tryCatch({
+      UNIVERSAL_STAN_MODEL <- stan_model(
+        file = stan_file_path,
+        model_name = "bayesian_pos_universal",
+        verbose = FALSE
+      )
+      
+      compile_end <- Sys.time()
+      compile_time <- as.numeric(difftime(compile_end, compile_start, units = "secs"))
+      
+      cat("\n")
+      cat("✓ Universal Stan model compiled successfully!\n")
+      cat(sprintf("  Compilation time: %.1f seconds\n", compile_time))
+      cat("  This model will be reused for all sessions.\n")
+      cat("  Prior changes will be passed as data (no recompilation).\n")
+      
+    }, error = function(e) {
+      cat("\n")
+      cat("✗ ERROR: Failed to compile Stan model!\n")
+      cat("Error message:", e$message, "\n")
+      cat("\nThe app will not function without the compiled model.\n")
+      cat("Please check the stan_universal_model_optimized.stan file and try again.\n")
+      stop("Stan model compilation failed")
+    })
+    
+  } else {
+    cat("✗ ERROR: Stan model file not found:", stan_file_path, "\n")
+    cat("Please ensure stan_universal_model_optimized.stan is in the working directory.\n")
+    stop("Stan model file not found")
+  }
 }
 
 # ===========================================================================
