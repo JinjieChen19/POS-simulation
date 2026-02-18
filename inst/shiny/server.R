@@ -205,14 +205,15 @@ function(input, output, session) {
           )
           incProgress(0.7, detail = "Compilation and sampling complete...")
         }
-      })
-      
-      incProgress(0.9, detail = "Processing results...")
-      results$fit <- fit
-      results$posterior_samples <- as.data.frame(fit)
-      results$summary <- summary(fit)$summary
-      
-      incProgress(1.0, detail = "Complete!")
+        
+        # Process results - still inside withProgress
+        incProgress(0.9, detail = "Processing results...")
+        results$fit <- fit
+        results$posterior_samples <- as.data.frame(fit)
+        results$summary <- summary(fit)$summary
+        
+        incProgress(1.0, detail = "Complete!")
+      })  # Close withProgress after all progress updates
       
       output$model_status <- renderPrint({
         cat("\n")
