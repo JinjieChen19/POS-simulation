@@ -229,7 +229,6 @@ function(input, output, session) {
         cat("  - Posterior: Parameter distributions\n")
         cat("==========================================================\n")
       })
-      })
       
     }, error = function(e) {
       output$model_status <- renderPrint({
