@@ -115,59 +115,120 @@ function(input, output, session) {
     
     # Fit model with enhanced error handling
     tryCatch({
-      # Use pre-compiled model if available and using defaults
-      if (using_defaults && !is.null(precompiled_model)) {
-        cat("Using pre-compiled model (DEFAULT configuration)\n")
-        fit <- sampling(
-          precompiled_model,
-          data = stan_data,
-          iter = input$n_iter,
-          chains = input$n_chains,
-          control = list(adapt_delta = input$adapt_delta, max_treedepth = input$max_treedepth),
-          verbose = FALSE,
-          refresh = 0
-        )
-      } else {
-        # Build and compile model for non-default settings
-        if (!using_defaults) {
-          cat("Using custom prior settings - compiling model...\n")
+      # Use withProgress to show sampling progress
+      withProgress(message = 'Running Bayesian Analysis', value = 0, {
+        
+        # Use pre-compiled model if available and using defaults
+        if (using_defaults && !is.null(precompiled_model)) {
+          incProgress(0.1, detail = "Using precompiled model...")
+          cat("==========================================================\n")
+          cat("⚡ RUNNING BAYESIAN ANALYSIS\n")
+          cat("==========================================================\n\n")
+          cat("Status:\n")
+          cat("  ✓ Model compilation: DONE (loaded at startup in < 1 sec)\n")
+          cat("  🔄 MCMC sampling: IN PROGRESS (takes 10-30 seconds)\n\n")
+          cat("Configuration:\n")
+          cat("  Iterations:", input$n_iter, "\n")
+          cat("  Chains:", input$n_chains, "\n")
+          cat("  Warmup:", input$n_iter/2, "\n")
+          cat("  Adapt delta:", input$adapt_delta, "\n\n")
+          cat("==========================================================\n")
+          cat("What's happening now:\n")
+          cat("==========================================================\n")
+          cat("  NOT compiling (that was done at startup)\n")
+          cat("  ✓ Sampling from posterior distribution\n")
+          cat("  ✓ Running Markov Chain Monte Carlo (MCMC)\n")
+          cat("  ✓ This takes time regardless of precompilation\n\n")
+          cat("Precompilation benefit:\n")
+          cat("  - Without precompile: 60-120 sec compile + 10-30 sec sample\n")
+          cat("  - With precompile: 0 sec compile + 10-30 sec sample\n")
+          cat("  - Time saved: 60-120 seconds! 🚀\n\n")
+          cat("Please wait for sampling to complete...\n")
+          cat("==========================================================\n\n")
+          
+          incProgress(0.2, detail = "Running MCMC sampling...")
+          fit <- sampling(
+            precompiled_model,
+            data = stan_data,
+            iter = input$n_iter,
+            chains = input$n_chains,
+            control = list(adapt_delta = input$adapt_delta, max_treedepth = input$max_treedepth),
+            verbose = FALSE,
+            refresh = 0
+          )
+          incProgress(0.7, detail = "Sampling complete, processing results...")
         } else {
-          cat("Pre-compiled model not available - compiling on-demand...\n")
+          # Build and compile model for non-default settings
+          if (!using_defaults) {
+            incProgress(0.1, detail = "Using custom priors - compiling model...")
+            cat("==========================================================\n")
+            cat("⚠️  USING CUSTOM PRIOR SETTINGS\n")
+            cat("==========================================================\n\n")
+            cat("Status:\n")
+            cat("  ⏳ Model compilation: IN PROGRESS (takes 60-120 seconds)\n")
+            cat("  ⏸️  MCMC sampling: WAITING (will take 10-30 seconds after)\n\n")
+            cat("NOTE: Custom priors require model recompilation.\n")
+            cat("This is a one-time cost for these specific settings.\n\n")
+            cat("Total time: ~70-150 seconds\n")
+            cat("  - Compilation: 60-120 seconds\n")
+            cat("  - Sampling: 10-30 seconds\n\n")
+            cat("Please wait...\n")
+            cat("==========================================================\n\n")
+          } else {
+            incProgress(0.1, detail = "Precompiled model not available - compiling...")
+            cat("Pre-compiled model not available - compiling on-demand...\n")
+          }
+          
+          incProgress(0.2, detail = "Building Stan model code...")
+          stan_code <- build_stan_model_improved(
+            prior_mu_os_mean = input$prior_mu_os_mean,
+            prior_mu_os_sd = input$prior_mu_os_sd,
+            prior_mu_pfs_mean = input$prior_mu_pfs_mean,
+            prior_mu_pfs_sd = input$prior_mu_pfs_sd,
+            prior_tau_type = input$prior_tau_type,
+            prior_tau_param_os = input$prior_tau_param_os,
+            prior_tau_param_pfs = input$prior_tau_param_pfs,
+            prior_rho_type = input$prior_rho_type,
+            prior_rho_param = input$prior_rho_param,
+            prior_rho_param2 = input$prior_rho_param2
+          )
+          
+          incProgress(0.3, detail = "Compiling model (60-120 sec)...")
+          fit <- stan(
+            model_code = stan_code,
+            data = stan_data,
+            iter = input$n_iter,
+            chains = input$n_chains,
+            control = list(adapt_delta = input$adapt_delta, max_treedepth = input$max_treedepth),
+            verbose = FALSE,
+            refresh = 0  # Suppress output to avoid connection issues
+          )
+          incProgress(0.7, detail = "Compilation and sampling complete...")
         }
-        
-        stan_code <- build_stan_model_improved(
-          prior_mu_os_mean = input$prior_mu_os_mean,
-          prior_mu_os_sd = input$prior_mu_os_sd,
-          prior_mu_pfs_mean = input$prior_mu_pfs_mean,
-          prior_mu_pfs_sd = input$prior_mu_pfs_sd,
-          prior_tau_type = input$prior_tau_type,
-          prior_tau_param_os = input$prior_tau_param_os,
-          prior_tau_param_pfs = input$prior_tau_param_pfs,
-          prior_rho_type = input$prior_rho_type,
-          prior_rho_param = input$prior_rho_param,
-          prior_rho_param2 = input$prior_rho_param2
-        )
-        
-        fit <- stan(
-          model_code = stan_code,
-          data = stan_data,
-          iter = input$n_iter,
-          chains = input$n_chains,
-          control = list(adapt_delta = input$adapt_delta, max_treedepth = input$max_treedepth),
-          verbose = FALSE,
-          refresh = 0  # Suppress output to avoid connection issues
-        )
-      }
+      })
       
+      incProgress(0.9, detail = "Processing results...")
       results$fit <- fit
       results$posterior_samples <- as.data.frame(fit)
       results$summary <- summary(fit)$summary
       
+      incProgress(1.0, detail = "Complete!")
+      
       output$model_status <- renderPrint({
-        cat("Stan model completed successfully!\n\n")
+        cat("\n")
+        cat("==========================================================\n")
+        cat("✅ ANALYSIS COMPLETE!\n")
+        cat("==========================================================\n\n")
         cat("Model Summary:\n")
         cat(strrep("=", 60), "\n")
         print(results$summary[c("mu[1]", "mu[2]", "tau_os", "tau_pfs", "rho_out", "theta_os_post"), ])
+        cat("\n")
+        cat("Check the tabs above for:\n")
+        cat("  - PoS Results: Probability of Success calculations\n")
+        cat("  - Trace Plots: MCMC convergence diagnostics\n")
+        cat("  - Posterior: Parameter distributions\n")
+        cat("==========================================================\n")
+      })
       })
       
     }, error = function(e) {
