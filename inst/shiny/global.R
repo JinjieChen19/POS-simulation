@@ -229,10 +229,16 @@ prepare_historical_loghr_data <- function(seed = 20260212,
   }
   
   # Return as tibble
+  # Note: For Phase 3 trials, typical values are:
+  # - Total sample size: ~500 (two arms)
+  # - OS events (D_OS): ~260-300
+  # - PFS events (D_PFS): ~350+
+  # The precision of log(HR) depends on number of events D, not total N
   tibble(
     trial_id = paste0("ICB-HIST-", sprintf("%02d", 1:K)),
     cancer_type = rep(c("Melanoma", "NSCLC", "Renal", "HCC", "Bladder", "Gastric"), length.out = K),
-    n_patients = sample(95:200, K, replace = TRUE),
+    n_events_os = sample(180:300, K, replace = TRUE),   # OS events (D_OS)
+    n_events_pfs = sample(250:380, K, replace = TRUE),  # PFS events (D_PFS)
     loghr_os = y[, 1],    # Observed OS logHR
     se_loghr_os = se_os,
     loghr_pfs = y[, 2],   # Observed PFS logHR

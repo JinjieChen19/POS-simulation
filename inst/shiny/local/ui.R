@@ -1,11 +1,12 @@
 # ============================================================================
 # UI.R - User Interface for Bayesian PoS Simulation App
 # ============================================================================
-# Defines the user interface with 4 tabs:
+# Defines the user interface with 5 tabs:
 # 1. Run Model - Controls for MCMC settings, data generation, priors
 # 2. Results - MCMC diagnostics, posterior plots, PoS calculation
 # 3. Scatter Plot - Visualization of 27+1 trials
 # 4. Data - Historical trials table
+# 5. Model Description - Stan model, assumptions, priors, references
 # ============================================================================
 
 navbarPage(
@@ -177,10 +178,214 @@ navbarPage(
            fluidPage(
              h2("Historical Trials Summary"),
              p("Showing the 27 historical trials used for the Bayesian model."),
+             p(strong("Note:"), " n_events_os and n_events_pfs represent the number of ", strong("events"), 
+               " (D), not total sample size. For survival analysis with log hazard ratios, ",
+               "precision depends on event counts. Typical Phase 3 oncology trials have ~500 total patients ",
+               "(two arms) with OS events ~260-300 and PFS events ~350+."),
              DT::dataTableOutput("data_table"),
              hr(),
              h3("Data Summary"),
              verbatimTextOutput("data_summary")
+           )
+  ),
+  
+  tabPanel("Model Description",
+           fluidPage(
+             h2("Bayesian Hierarchical Model for PoS Calculation"),
+             
+             wellPanel(
+               style = "background-color: #f8f9fa;",
+               h3("Model Overview"),
+               p("This application implements a Bayesian hierarchical model to estimate the Probability of Success (PoS) ",
+                 "for an ongoing clinical trial based on historical trial data and interim results."),
+               
+               h4("Key Features"),
+               tags$ul(
+                 tags$li(strong("Hierarchical structure:"), " Borrows strength across historical trials while accounting for between-trial heterogeneity"),
+                 tags$li(strong("Bivariate endpoints:"), " Jointly models Overall Survival (OS) and Progression-Free Survival (PFS) with correlation"),
+                 tags$li(strong("Flexible priors:"), " All prior parameters passed as data - no recompilation needed for prior changes"),
+                 tags$li(strong("Non-centered parameterization:"), " Improves MCMC sampling efficiency and convergence"),
+                 tags$li(strong("Target-based PoS:"), " Calculates probability relative to user-specified success thresholds")
+               )
+             ),
+             
+             wellPanel(
+               h3("Stan Model Structure"),
+               
+               h4("1. Data Level"),
+               p("For each historical trial ", em("k"), " = 1, ..., K and current trial:"),
+               tags$ul(
+                 tags$li(HTML("<b>Observed log hazard ratios:</b> y<sub>k</sub> = (y<sub>k,OS</sub>, y<sub>k,PFS</sub>)")),
+                 tags$li(HTML("<b>Within-trial covariance:</b> W<sub>k</sub> (accounts for estimation uncertainty and within-trial correlation)"))
+               ),
+               
+               h4("2. Trial-Specific Parameters"),
+               p(HTML("Each trial has true treatment effects θ<sub>k</sub> = (θ<sub>k,OS</sub>, θ<sub>k,PFS</sub>)")),
+               p(HTML("Observational model: y<sub>k</sub> ~ MVN(θ<sub>k</sub>, W<sub>k</sub>)")),
+               
+               h4("3. Population-Level Parameters"),
+               p(HTML("Trial-specific effects follow a bivariate normal distribution: θ<sub>k</sub> ~ MVN(μ, Σ)")),
+               tags$ul(
+                 tags$li(HTML("<b>μ</b> = (μ<sub>OS</sub>, μ<sub>PFS</sub>): Population mean log hazard ratios")),
+                 tags$li(HTML("<b>Σ</b>: Between-trial covariance matrix with standard deviations τ<sub>OS</sub>, τ<sub>PFS</sub> and correlation ρ"))
+               ),
+               
+               h4("4. Non-Centered Parameterization"),
+               p("For improved MCMC efficiency:"),
+               tags$ul(
+                 tags$li(HTML("θ<sub>raw,k</sub> ~ Normal(0, 1) [standard normal]")),
+                 tags$li(HTML("θ<sub>k</sub> = μ + L × θ<sub>raw,k</sub> [where L is Cholesky factor of Σ]"))
+               ),
+               p("This separates the hierarchical structure from the centering, dramatically improving sampling.")
+             ),
+             
+             wellPanel(
+               h3("Prior Specifications"),
+               
+               h4("Population Means (μ)"),
+               p(HTML("μ<sub>OS</sub> ~ Normal(prior_mu_os_mean, prior_mu_os_sd)")),
+               p(HTML("μ<sub>PFS</sub> ~ Normal(prior_mu_pfs_mean, prior_mu_pfs_sd)")),
+               p("Default: Weakly informative priors centered at expected effect sizes with large standard deviations."),
+               
+               h4("Between-Trial Standard Deviations (τ)"),
+               p("Options available:"),
+               tags$ul(
+                 tags$li(strong("Exponential:"), " τ ~ Exp(λ), mean = 1/λ"),
+                 tags$li(strong("Half-Normal:"), " τ ~ HalfNormal(0, σ)")
+               ),
+               p("Default: Exponential(1) for both OS and PFS, allowing substantial heterogeneity."),
+               
+               h4("Between-Trial Correlation (ρ)"),
+               p("Options available:"),
+               tags$ol(
+                 tags$li(strong("Fisher z-transform (RECOMMENDED):"), " Transforms ρ to unbounded scale for better sampling"),
+                 tags$li(strong("Uniform:"), " Direct uniform prior on [-0.95, 0.95]"),
+                 tags$li(strong("Uniform positive:"), " Constrained to [0, 0.95]"),
+                 tags$li(strong("Beta:"), " For positive correlations only"),
+                 tags$li(strong("LKJ:"), " Symmetric prior for correlation matrices")
+               ),
+               p("Default: Fisher z-transform with z ~ Normal(μ_z, σ_z), where μ_z and σ_z are chosen ",
+                 "to give ρ with 95% credible interval approximately [0.35, 0.80].")
+             ),
+             
+             wellPanel(
+               h3("PoS Calculation"),
+               
+               p("The Probability of Success (PoS) is calculated as:"),
+               p(HTML("<b>PoS<sub>OS</sub></b> = Pr(θ<sub>current,OS</sub> < target<sub>OS</sub> | data)")),
+               
+               p("Where:"),
+               tags$ul(
+                 tags$li(HTML("θ<sub>current,OS</sub> is the true treatment effect for the current trial")),
+                 tags$li(HTML("target<sub>OS</sub> is the user-specified success threshold (e.g., log(0.74) ≈ -0.30 for 26% reduction)")),
+                 tags$li("Calculated from posterior samples: proportion of samples where condition is met")
+               ),
+               
+               p(strong("Interpretation Example:")),
+               p("If target_OS = -0.30 (HR < 0.74) and PoS = 0.67, there is a 67% probability that ",
+                 "the final trial will demonstrate at least a 26% risk reduction in OS.")
+             ),
+             
+             wellPanel(
+               h3("Simulation Settings"),
+               
+               h4("Historical Data Generation"),
+               p("27 historical trials are simulated with:"),
+               tags$ul(
+                 tags$li(HTML("<b>Event counts:</b> OS events (D<sub>OS</sub>): 180-300, PFS events (D<sub>PFS</sub>): 250-380")),
+                 tags$li(strong("True population parameters:"), " User-specified μ, τ, and ρ"),
+                 tags$li(strong("Standard errors:"), " Realistic ranges based on event counts (SE ∝ 1/√D)"),
+                 tags$li(strong("Within-trial correlation:"), " Varies by trial (typically 0.55-0.75)")
+               ),
+               
+               h4("Current Trial Specification"),
+               p("Users specify:"),
+               tags$ul(
+                 tags$li("Interim log hazard ratios for OS and PFS"),
+                 tags$li("Standard errors (reflecting interim analysis timing)"),
+                 tags$li("Success threshold for OS")
+               )
+             ),
+             
+             wellPanel(
+               h3("Key Assumptions"),
+               
+               tags$ol(
+                 tags$li(strong("Exchangeability:"), " Historical trials are assumed exchangeable (similar enough to pool)"),
+                 tags$li(strong("Normal approximation:"), " Log hazard ratios are approximately normally distributed (valid for moderate to large event counts)"),
+                 tags$li(strong("Known standard errors:"), " Estimation uncertainty in SEs is ignored (reasonable for well-powered trials)"),
+                 tags$li(strong("Independence:"), " Trials are independent (no overlapping populations or systematic biases)"),
+                 tags$li(strong("Bivariate normal structure:"), " The joint distribution of OS and PFS treatment effects is adequately captured by bivariate normal"),
+                 tags$li(strong("Linear correlation:"), " The relationship between OS and PFS is characterized by Pearson correlation")
+               ),
+               
+               p(strong("Important:"), " These assumptions should be critically evaluated for each application. ",
+                 "Sensitivity analyses with different prior specifications are recommended.")
+             ),
+             
+             wellPanel(
+               h3("Prior Selection Considerations"),
+               
+               h4("Choosing μ Priors"),
+               tags$ul(
+                 tags$li("Center at clinically plausible effect sizes based on mechanism of action"),
+                 tags$li("Use wide SDs (e.g., 1.0) to remain weakly informative"),
+                 tags$li("Consider therapeutic class and historical effect sizes")
+               ),
+               
+               h4("Choosing τ Priors"),
+               tags$ul(
+                 tags$li("τ represents between-trial heterogeneity (how much trials vary)"),
+                 tags$li("Exponential(1) allows substantial heterogeneity while regularizing extreme values"),
+                 tags$li("Consider disease heterogeneity, trial design differences, and patient populations")
+               ),
+               
+               h4("Choosing ρ Priors"),
+               tags$ul(
+                 tags$li("ρ captures correlation between OS and PFS treatment effects across trials"),
+                 tags$li("Fisher z-transform provides better sampling than direct parameterization"),
+                 tags$li("Default centers on moderate positive correlation (ρ ~ 0.55) with wide uncertainty"),
+                 tags$li("Strong positive correlation (ρ > 0.7) may be expected for diseases where PFS strongly predicts OS")
+               ),
+               
+               h4("Sensitivity Analysis"),
+               p("It is crucial to:"),
+               tags$ul(
+                 tags$li("Run the model with different prior specifications"),
+                 tags$li("Examine how PoS estimates change"),
+                 tags$li("Check that conclusions are robust to reasonable prior choices"),
+                 tags$li("Report sensitivity analyses in any decision documents")
+               )
+             ),
+             
+             wellPanel(
+               h3("Computational Details"),
+               
+               tags$ul(
+                 tags$li(strong("Algorithm:"), " Hamiltonian Monte Carlo (HMC) via Stan"),
+                 tags$li(strong("Default settings:"), " 2000 iterations, 1000 warmup, 4 chains"),
+                 tags$li(strong("Convergence diagnostics:"), " Rhat < 1.01, ESS > 400 (check trace plots)"),
+                 tags$li(strong("Adapt delta:"), " 0.99 (high value reduces divergences in challenging posteriors)"),
+                 tags$li(strong("Compilation:"), " Model precompiled for instant startup (<1 second vs 60-120 seconds)")
+               )
+             ),
+             
+             wellPanel(
+               h3("References and Further Reading"),
+               
+               tags$ul(
+                 tags$li("Spiegelhalter DJ, Abrams KR, Myles JP (2004). ", em("Bayesian Approaches to Clinical Trials and Health-Care Evaluation.")),
+                 tags$li("Gelman A, et al. (2013). ", em("Bayesian Data Analysis"), ", 3rd ed."),
+                 tags$li("Stan Development Team (2023). ", em("Stan Modeling Language Users Guide and Reference Manual.")),
+                 tags$li("Betancourt M (2017). ", em("A Conceptual Introduction to Hamiltonian Monte Carlo.")),
+                 tags$li("Papanikos T, et al. (2020). ", em("Bayesian hierarchical models for multiple outcomes.")),
+                 tags$li("FDA Guidance: ", em("Adaptive Designs for Clinical Trials of Drugs and Biologics"), " (2019)")
+               )
+             ),
+             
+             p(HTML("<hr><small><i>Model implementation: Stan version ", 
+                    "with non-centered parameterization and flexible priors. ",
+                    "For technical questions or to report issues, contact the development team.</i></small>"))
            )
   )
 )
