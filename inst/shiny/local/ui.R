@@ -210,6 +210,74 @@ navbarPage(
              ),
              
              wellPanel(
+               h3("Hierarchical Model Structure (Visual)"),
+               p("The diagram below illustrates the three-level hierarchical structure of the model:"),
+               
+               # Hierarchical model diagram using HTML/CSS
+               tags$div(
+                 style = "background: white; padding: 20px; border: 1px solid #ddd; border-radius: 5px; margin: 20px 0;",
+                 
+                 # Level 3: Population (Hyperpriors)
+                 tags$div(
+                   style = "background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; border-radius: 8px; margin-bottom: 15px; text-align: center;",
+                   tags$h4(style = "margin: 5px 0; color: white;", "Level 3: Population Parameters (Hyperpriors)"),
+                   HTML("<div style='font-size: 16px; margin-top: 10px;'>"),
+                   HTML("μ = (μ<sub>OS</sub>, μ<sub>PFS</sub>) ~ Normal(prior means, prior SDs)"),
+                   tags$br(),
+                   HTML("Σ = f(τ<sub>OS</sub>, τ<sub>PFS</sub>, ρ) with priors on τ and ρ"),
+                   HTML("</div>")
+                 ),
+                 
+                 # Arrow down
+                 tags$div(
+                   style = "text-align: center; font-size: 30px; color: #667eea; margin: 10px 0;",
+                   "↓"
+                 ),
+                 
+                 # Level 2: Trial-specific parameters
+                 tags$div(
+                   style = "background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 15px; border-radius: 8px; margin-bottom: 15px; text-align: center;",
+                   tags$h4(style = "margin: 5px 0; color: white;", "Level 2: Trial-Specific Effects"),
+                   HTML("<div style='font-size: 16px; margin-top: 10px;'>"),
+                   HTML("θ<sub>k</sub> = (θ<sub>k,OS</sub>, θ<sub>k,PFS</sub>) ~ MVN(μ, Σ)"),
+                   tags$br(),
+                   HTML("for k = 1, ..., K (historical trials) + current trial"),
+                   HTML("</div>")
+                 ),
+                 
+                 # Arrow down
+                 tags$div(
+                   style = "text-align: center; font-size: 30px; color: #f093fb; margin: 10px 0;",
+                   "↓"
+                 ),
+                 
+                 # Level 1: Observed data
+                 tags$div(
+                   style = "background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; padding: 15px; border-radius: 8px; text-align: center;",
+                   tags$h4(style = "margin: 5px 0; color: white;", "Level 1: Observed Data (Likelihood)"),
+                   HTML("<div style='font-size: 16px; margin-top: 10px;'>"),
+                   HTML("y<sub>k</sub> = (y<sub>k,OS</sub>, y<sub>k,PFS</sub>) ~ MVN(θ<sub>k</sub>, W<sub>k</sub>)"),
+                   tags$br(),
+                   HTML("W<sub>k</sub> = within-trial covariance (known from observed SEs)"),
+                   HTML("</div>")
+                 ),
+                 
+                 # Legend
+                 tags$div(
+                   style = "margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 5px; border-left: 4px solid #667eea;",
+                   tags$strong("Information Flow:"),
+                   tags$ul(
+                     style = "margin-top: 10px;",
+                     tags$li("Population parameters (μ, Σ) govern the distribution of trial-specific effects"),
+                     tags$li("Trial-specific effects (θ", tags$sub("k"), ") represent the true treatment effects in each trial"),
+                     tags$li("Observed data (y", tags$sub("k"), ") provide noisy measurements of the true effects"),
+                     tags$li("The model 'borrows strength' across trials while accounting for heterogeneity")
+                   )
+                 )
+               )
+             ),
+             
+             wellPanel(
                h3("Stan Model Structure"),
                
                h4("1. Data Level"),
