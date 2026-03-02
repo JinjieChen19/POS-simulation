@@ -77,8 +77,8 @@ function(input, output, session) {
       input$prior_tau_type == "exponential" &&
       input$prior_tau_param_os == 1 && input$prior_tau_param_pfs == 1 &&
       input$prior_rho_type == "fisher_z" &&
-      abs(input$prior_rho_param - mu_z_default) < 0.001 &&
-      abs(input$prior_rho_param2 - sd_z_default) < 0.001
+      abs(input$prior_rho_param - 0.732028) < 0.001 &&
+      abs(input$prior_rho_param2 - 0.1870328) < 0.001
     )
     
     # Prepare data for Stan

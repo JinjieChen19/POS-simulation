@@ -96,8 +96,8 @@ navbarPage(
                
                conditionalPanel(
                  condition = "input.prior_rho_type == 'fisher_z'",
-                 numericInput("prior_rho_param", "z Prior Mean (μ_z):", value = mu_z_default, step = 0.1),
-                 numericInput("prior_rho_param2", "z Prior SD (σ_z):", value = sd_z_default, min = 0.01, step = 0.01),
+                 numericInput("prior_rho_param", "z Prior Mean (μ_z):", value = 0.732028, step = 0.1),
+                 numericInput("prior_rho_param2", "z Prior SD (σ_z):", value = 0.1870328, min = 0.01, step = 0.01),
                  helpText(paste0("Default values give ρ 95% ~ [0.35, 0.80]. ",
                                  "For weakly informative: μ_z=0, σ_z=1.5. ",
                                  "For high positive: μ_z=", round(atanh(0.7), 2), ", σ_z=0.5"))
