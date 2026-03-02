@@ -219,7 +219,7 @@ navbarPage(
                  
                  # Level 3: Population (Hyperpriors)
                  tags$div(
-                   style = "background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; border-radius: 8px; margin-bottom: 15px; text-align: center;",
+                   style = "background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%); color: white; padding: 15px; border-radius: 8px; margin-bottom: 15px; text-align: center;",
                    tags$h4(style = "margin: 5px 0; color: white;", "Level 3: Population Parameters (Hyperpriors)"),
                    HTML("<div style='font-size: 16px; margin-top: 10px;'>"),
                    HTML("μ = (μ<sub>OS</sub>, μ<sub>PFS</sub>) ~ Normal(prior means, prior SDs)"),
@@ -230,13 +230,13 @@ navbarPage(
                  
                  # Arrow down
                  tags$div(
-                   style = "text-align: center; font-size: 30px; color: #667eea; margin: 10px 0;",
+                   style = "text-align: center; font-size: 30px; color: #2c3e50; margin: 10px 0;",
                    "↓"
                  ),
                  
                  # Level 2: Trial-specific parameters
                  tags$div(
-                   style = "background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 15px; border-radius: 8px; margin-bottom: 15px; text-align: center;",
+                   style = "background: linear-gradient(135deg, #16a085 0%, #1abc9c 100%); color: white; padding: 15px; border-radius: 8px; margin-bottom: 15px; text-align: center;",
                    tags$h4(style = "margin: 5px 0; color: white;", "Level 2: Trial-Specific Effects"),
                    HTML("<div style='font-size: 16px; margin-top: 10px;'>"),
                    HTML("θ<sub>k</sub> = (θ<sub>k,OS</sub>, θ<sub>k,PFS</sub>) ~ MVN(μ, Σ)"),
@@ -247,13 +247,13 @@ navbarPage(
                  
                  # Arrow down
                  tags$div(
-                   style = "text-align: center; font-size: 30px; color: #f093fb; margin: 10px 0;",
+                   style = "text-align: center; font-size: 30px; color: #16a085; margin: 10px 0;",
                    "↓"
                  ),
                  
                  # Level 1: Observed data
                  tags$div(
-                   style = "background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; padding: 15px; border-radius: 8px; text-align: center;",
+                   style = "background: linear-gradient(135deg, #3498db 0%, #5dade2 100%); color: white; padding: 15px; border-radius: 8px; text-align: center;",
                    tags$h4(style = "margin: 5px 0; color: white;", "Level 1: Observed Data (Likelihood)"),
                    HTML("<div style='font-size: 16px; margin-top: 10px;'>"),
                    HTML("y<sub>k</sub> = (y<sub>k,OS</sub>, y<sub>k,PFS</sub>) ~ MVN(θ<sub>k</sub>, W<sub>k</sub>)"),
@@ -264,7 +264,7 @@ navbarPage(
                  
                  # Legend
                  tags$div(
-                   style = "margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 5px; border-left: 4px solid #667eea;",
+                   style = "margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 5px; border-left: 4px solid #2c3e50;",
                    tags$strong("Information Flow:"),
                    tags$ul(
                      style = "margin-top: 10px;",
