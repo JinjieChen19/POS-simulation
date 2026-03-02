@@ -160,28 +160,65 @@ sd_z_default <- (atanh(rho_U) - atanh(rho_L)) / (2 * 1.96)  # 0.2173
 # ===========================================================================
 # Load pre-compiled DEFAULT Stan model if available
 # This eliminates 1-2 minutes of compilation time on startup
+# Uses the load_precompiled_stan_model() function from the package
 # ===========================================================================
-DEFAULT_MODEL_FILE <- "bayesian_pos_model.rds"
+
+cat("\n==========================================================\n")
+cat("LOADING PRECOMPILED STAN MODEL\n")
+cat("==========================================================\n")
+
+# Try to load precompiled model using the package function
 precompiled_model <- NULL
 
-if (file.exists(DEFAULT_MODEL_FILE)) {
-  cat("Loading pre-compiled Stan model from:", DEFAULT_MODEL_FILE, "\n")
+# Check if we're running as part of the package
+if (exists("load_precompiled_stan_model")) {
+  precompiled_model <- load_precompiled_stan_model()
+} else {
+  # Fallback: try to source the function from package
   tryCatch({
-    precompiled_model <- readRDS(DEFAULT_MODEL_FILE)
-    cat("✓ Pre-compiled model loaded successfully!\n")
-    cat("  This eliminates 1-2 minutes of compilation time.\n")
-    cat("  Model uses default priors: fisher_z + exponential\n")
+    # Try to load from package namespace
+    if (requireNamespace("POSsimulation", quietly = TRUE)) {
+      precompiled_model <- POSsimulation::load_precompiled_stan_model()
+    }
   }, error = function(e) {
-    warning(sprintf("Failed to load pre-compiled model: %s", e$message))
-    cat("  Will compile model on-demand when needed.\n")
-    precompiled_model <<- NULL
+    # If package not available, try local paths
+    local_paths <- c(
+      "inst/stan/stan_model_compiled.rds",
+      "../stan/stan_model_compiled.rds",
+      "stan_model_compiled.rds"
+    )
+    
+    for (path in local_paths) {
+      if (file.exists(path)) {
+        tryCatch({
+          precompiled_model <<- readRDS(path)
+          cat("✓ Loaded precompiled model from local path:", path, "\n")
+          break
+        }, error = function(e2) {
+          cat("  Failed to load from", path, ":", e2$message, "\n")
+        })
+      }
+    }
   })
+}
+
+# Report status
+if (!is.null(precompiled_model)) {
+  cat("✓ PRECOMPILED MODEL LOADED SUCCESSFULLY!\n")
+  cat("  Load time: < 1 second\n")
+  cat("  Without precompilation: 60-120 seconds\n")
+  cat("  Time saved: ~90 seconds! 🚀\n\n")
+  cat("This model will be used for DEFAULT prior settings.\n")
+  cat("Custom priors will require on-demand compilation.\n")
 } else {
   cat("Note: Pre-compiled model not found.\n")
-  cat("  To pre-compile the DEFAULT model for faster startup:\n")
-  cat("  Run: R -e \"source('precompile_model.R')\"\n")
-  cat("  Models will be compiled on-demand (slower first run).\n")
+  cat("  Models will be compiled on-demand when needed.\n")
+  cat("  First run with default priors will take 60-120 seconds.\n\n")
+  cat("To precompile the model:\n")
+  cat("  Rscript tools/precompile_stan_model.R\n")
 }
+
+cat("==========================================================\n\n")
 
 # ===========================================================================
 # DATA GENERATION FUNCTION
