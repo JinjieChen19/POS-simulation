@@ -1,0 +1,73 @@
+# =============================================================================
+# GitHub Actions Workflow for Fly.io Deployment
+# =============================================================================
+# This workflow automatically deploys the Bayesian PoS Simulation app to Fly.io
+# whenever changes are pushed to the main branch.
+#
+# Prerequisites:
+# 1. Create a Fly.io account at https://fly.io
+# 2. Install flyctl CLI: https://fly.io/docs/hands-on/install-flyctl/
+# 3. Run `flyctl auth token` to get your API token
+# 4. Add the token as FLY_API_TOKEN in GitHub Secrets:
+#    Settings -> Secrets and variables -> Actions -> New repository secret
+# =============================================================================
+
+name: Deploy to Fly.io
+
+# Trigger on push to main branch
+on:
+  push:
+    branches:
+      - main
+  # Allow manual trigger from Actions tab
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy to Fly.io
+    runs-on: ubuntu-latest
+    
+    steps:
+      # Step 1: Pre-deployment check for FLY_API_TOKEN
+      - name: Pre-deployment check
+        run: |
+          echo "Checking for FLY_API_TOKEN in GitHub Secrets..."
+          if [ -z "${{ secrets.FLY_API_TOKEN }}" ]; then
+            echo "❌ ERROR: FLY_API_TOKEN is not configured in GitHub Secrets"
+            echo ""
+            echo "Please follow these steps:"
+            echo "1. Go to https://fly.io/docs/hands-on/install-flyctl/ and install flyctl"
+            echo "2. Run 'flyctl auth login' to authenticate"
+            echo "3. Run 'flyctl auth token' to get your API token"
+            echo "4. Add the token as FLY_API_TOKEN in GitHub repository secrets:"
+            echo "   Settings -> Secrets and variables -> Actions -> New repository secret"
+            echo ""
+            exit 1
+          else
+            echo "✓ FLY_API_TOKEN is configured"
+          fi
+      
+      # Step 2: Checkout code
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      # Step 3: Setup Fly.io CLI
+      - name: Setup Fly.io CLI
+        uses: superfly/flyctl-actions/setup-flyctl@master
+      
+      # Step 4: Deploy to Fly.io
+      - name: Deploy to Fly.io
+        run: |
+          echo "Deploying to Fly.io..."
+          flyctl deploy --remote-only
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+      
+      # Step 5: Post-deployment verification
+      - name: Post-deployment verification
+        run: |
+          echo "Deployment completed!"
+          echo "Your app should be available at:"
+          flyctl status
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}

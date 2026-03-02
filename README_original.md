@@ -1,0 +1,497 @@
+# Bayesian Probability of Success (PoS) Simulation - R Shiny Application
+
+## 🚨 CRITICAL FIX: "invalid connection" Error Resolved! (2026-02-13)
+
+**Problem:** App failed on shinyapps.io with "Error running Stan model: invalid connection"
+
+**Status:** ✅ **COMPLETELY FIXED**
+
+**Solution Applied:**
+- ✅ Disabled all parallelism (single-core mode required for shinyapps.io)
+- ✅ Cloud-friendly defaults (1 chain, 2000 iterations)
+- ✅ Enhanced error handling with helpful messages
+- ✅ Comprehensive 900+ line troubleshooting guide
+
+📖 **Complete Guide:** [INVALID_CONNECTION_FIX.md](INVALID_CONNECTION_FIX.md) - Everything you need to know!
+
+🚀 **Quick Redeploy:**
+```r
+library(rsconnect)
+rsconnect::deployApp(
+  appFiles = c("global.R", "ui.R", "server.R"),
+  appName = "bayesian-pos-simulation",
+  forceUpdate = TRUE  # Force update to apply fix
+)
+```
+
+**Expected Result:** App now works reliably on shinyapps.io with no errors! 🎯
+
+---
+
+## 🚀 READY FOR shinyapps.io DEPLOYMENT
+
+**Three-file structure for easy deployment:**
+- **global.R** - Shared code, libraries, helper functions (single-core configured)
+- **ui.R** - User interface (4 tabs, cloud-optimized defaults)
+- **server.R** - Server logic, Stan model execution (enhanced error handling)
+
+📖 **Deployment Guide:** [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)  
+📖 **Previous Fix:** [SHINYAPPS_FIX.md](SHINYAPPS_FIX.md) (auto_write disabled)
+
+---
+
+## 📱 NEW: Simplified Version Available! (2026-02-13)
+
+**Streamlined app without Help and Model Description tabs:**
+- **File:** `app_simple.R` - 20% fewer lines, cleaner interface
+- **Tabs:** Run Model, Results, Scatter Plot, Data (4 total)
+- **Functionality:** 100% of core features preserved ✅
+- **Best for:** Experienced users, production use, clean demos
+
+📖 **Guide:** [APP_SIMPLE_GUIDE.md](APP_SIMPLE_GUIDE.md) - Complete documentation  
+🚀 **Run:** `shiny::runApp("app_simple.R")`
+
+**Use Cases:**
+- ✅ Quick PoS assessment without scrolling through docs
+- ✅ Production deployments where UI space is limited
+- ✅ Experienced users who know the model
+- ✅ Demos and presentations
+
+**Still want documentation?** Use full version (`app.R`) with Help and Model Description tabs.
+
+---
+
+## 🎨 MAJOR UPDATE: Core Algorithm Rewrite + Scatter Plot (2026-02-13) 🎨
+
+**COMPLETE REWRITE with Enhanced Visualization!**  
+- **Algorithm:** Rewritten from scratch using latest simulation methodology  
+- **Prior:** Informative Fisher-z prior for ρ (95% ~ [0.35, 0.80])  
+- **Visualization:** NEW scatter plot showing all 27 historical + current trial  
+- **Appearance:** All existing functionality and UI preserved ✅  
+- **Quality:** More realistic parameters, better statistical properties  
+
+📖 **START HERE:** [REWRITE_COMPLETE_SUMMARY.md](REWRITE_COMPLETE_SUMMARY.md) - Executive summary  
+📖 **TECHNICAL:** [ALGORITHM_REWRITE_SUMMARY.md](ALGORITHM_REWRITE_SUMMARY.md) - Complete details  
+📖 **TEST:** [test_scatter_plot.R](test_scatter_plot.R) - Standalone validation  
+
+**New features:**
+- ✅ Proper hierarchical data generation (population → trials → observations)
+- ✅ Informative prior: ρ 95% ~ [0.35, 0.80] (typical oncology trials)
+- ✅ Beautiful scatter plot: 27 blue points + 1 red diamond (current trial)
+- ✅ All existing tabs and functionality maintained
+
+---
+
+## 🚨 CRITICAL BUG FIX: Fisher z Prior Parameters (2026-02-12 22:40) 🚨
+
+**URGENT UPDATE - Parameter Passing Bug Fixed!**  
+- **Problem:** Fisher z was passing **wrong prior parameters** (hardcoded Normal(2,1) instead of UI values)  
+- **Impact:** ρ estimated at ~0.90 instead of correct ~0.65!  
+- **Root Cause:** Lines 704-705 used `ifelse` that ignored Fisher z UI inputs  
+- **Fix:** Now passes UI parameters directly ✅  
+- **Bonus Fix:** Added `rho_out` to generated quantities (now extractable) ✅  
+
+📖 **READ IMMEDIATELY:** [CRITICAL_FISHER_Z_BUG_FIX.md](CRITICAL_FISHER_Z_BUG_FIX.md) - English  
+📖 **立即阅读:** [CRITICAL_FISHER_Z_BUG_FIX_CN.md](CRITICAL_FISHER_Z_BUG_FIX_CN.md) - 中文详细说明  
+
+**Fisher z NOW works correctly with informative defaults (μ_z=0.5365, σ_z=0.2173)!**
+
+---
+
+## 🎯 Fisher z-Transformation for Correlation (2026-02-12 22:20) 🔥
+
+**BREAKTHROUGH FIX - Based on Expert Analysis (ChatGPT)**  
+- **Problem:** Systematic underestimation of ρ (true=0.70 → estimated=0.16-0.30)  
+- **Root Cause:** Direct estimation of ρ has bad sampling geometry near boundaries  
+- **Solution:** **Fisher z-transformation** (z = atanh(ρ), ρ = tanh(z))  
+- **Why it works:** Unbounded z ∈ ℝ, better MCMC geometry, no shrinkage to 0  
+- **Expected Result:** Accurate ρ ≈ 0.60-0.70, narrower CIs, +10 points PoS! ✅  
+
+📖 **MUST READ:** [FISHER_Z_TRANSFORMATION.md](FISHER_Z_TRANSFORMATION.md) - Complete technical explanation  
+📖 **中文回应:** [CHATGPT_ANALYSIS_RESPONSE_CN.md](CHATGPT_ANALYSIS_RESPONSE_CN.md) - 完整分析和实施  
+
+**Fisher z is now the RECOMMENDED default prior for ρ!**
+
+---
+
+## ⚠️ Previous Fix: Exponential(1) Prior on tau (2026-02-12 20:15)
+
+**FIFTH ITERATION:**  
+- **Problem:** Still seeing tau ≈ 0.03 and rho ≈ 0.21  
+- **Fix:** Changed default to **Exponential(1)** with mean = 1.0  
+- **Expected Result:** tau ≈ 0.12-0.15 ✅  
+
+📖 See [EXPONENTIAL1_FIX.md](EXPONENTIAL1_FIX.md)
+
+### Previous Fixes (All Applied):
+- ✅ Prior adjustment: Exponential(1) (see [EXPONENTIAL1_FIX.md](EXPONENTIAL1_FIX.md)) ← **LATEST**
+- ✅ Prior choice: Half-Normal attempt (see [TAU_SHRINKAGE_ISSUE.md](TAU_SHRINKAGE_ISSUE.md))
+- ✅ Signal-to-noise ratio fix (see [SIGNAL_TO_NOISE_FIX.md](SIGNAL_TO_NOISE_FIX.md))
+- ✅ Data order mismatch fix (see [CRITICAL_BUG_FIX.md](CRITICAL_BUG_FIX.md))
+- ✅ Cholesky decomposition (see [DATA_GENERATION_UPDATE.md](DATA_GENERATION_UPDATE.md))
+
+---
+
+## 🔍 FREQUENTLY ASKED QUESTION
+
+### Q: Does the model use current trial's OS (even if not mature)?
+
+**YES!** The model DOES incorporate the current trial's Overall Survival (OS) data, even if it's immature.
+
+**How?** Through the standard error (SE):
+- Immature OS → Larger SE → Lower weight in Bayesian inference
+- Model automatically combines: Historical data + Current OS (immature) + Current PFS (via correlation ρ)
+- Even with few OS events, the data contributes information (weighted by precision = 1/SE²)
+
+**Why include immature OS?**
+- Prevents over-reliance on PFS alone
+- Provides reality check on PFS-OS relationship
+- Bayesian optimality: Use ALL available data, weighted appropriately
+
+📖 **COMPLETE ANSWER:** [FAQ_CURRENT_TRIAL_OS.md](FAQ_CURRENT_TRIAL_OS.md) - Detailed explanation with examples
+
+---
+
+## 🆕 NEW FEATURE: Informative Priors for ρ (2026-02-12 21:00)
+
+**Issue:** Default Uniform(-0.95, 0.95) prior may be too wide when positive correlation is expected
+
+**Solution:** Added **informative positive-only priors**:
+- **Uniform(0, 0.95)** - Simple flat prior over positive correlations
+- **Beta(α, β)** - Flexible prior with customizable concentration
+  - Beta(2, 1): Weakly favors high positive correlation
+  - Beta(5, 1): Strongly favors high positive correlation
+  - Beta(2, 2): Favors moderate positive correlation around 0.5
+
+**When to use:** 
+- Oncology trials where OS and PFS typically positively correlated
+- Have domain knowledge suggesting ρ > 0
+- Want more efficient estimation with narrower credible intervals
+
+📖 **FULL GUIDE:** [INFORMATIVE_RHO_PRIORS.md](INFORMATIVE_RHO_PRIORS.md) - Complete explanation, comparisons, and recommendations
+
+---
+
+## Overview
+
+This comprehensive R Shiny application provides an interactive interface for running full Bayesian Probability of Success (PoS) analysis for clinical trials using Overall Survival (OS) and Progression-Free Survival (PFS) data. The application is based on the existing `bayesian_pos_fixed current rho` code and implements a hierarchical Bayesian model with log-transformed hazard ratios.
+
+## Features
+
+### 1. Model Description Panel
+- Complete statistical model formulation with mathematical notation
+- Detailed prior specifications for all parameters
+- Explanation of non-centered parameterization
+- Likelihood structure documentation
+- Information about customizable features
+
+### 2. Interactive Model Execution Panel
+- **MCMC Settings:**
+  - Adjustable iterations (default: 4000)
+  - Number of chains (default: 4)
+  - **NEW:** Adjustable adapt_delta (default: 0.99)
+  - **NEW:** Adjustable max_treedepth (default: 12)
+- **Prior Specifications:**
+  - **NEW:** Population means (μ_OS, μ_PFS) - customizable mean and SD
+  - **NEW:** Between-trial heterogeneity - choice of Exponential or Half-Normal
+  - **NEW:** Correlation prior - choice of Uniform, Uniform(positive), Beta, or LKJ
+  - **NEW:** Informative positive priors for ρ when expecting positive correlation (typical in oncology)
+- Current trial parameter inputs (interim log HR and SE for OS/PFS)
+- Target log(HR) specification for success criteria
+- Real-time progress tracking
+- Comprehensive MCMC diagnostics output
+
+### 3. Results Visualization
+- Posterior distribution plots for log(HR) and HR on natural scale
+- Probability of Success (PoS) assessment with visual indicators
+- Population parameter estimates (μ, τ, ρ)
+- MCMC trace plots for convergence diagnostics
+- Publication-ready visualizations using ggplot2
+
+### 4. Data Management
+- Interactive table displaying **27 historical trials** (expanded from 10)
+- **6 cancer types:** Melanoma, NSCLC, Renal, HCC, Bladder, Gastric
+- Summary statistics and correlations
+- Editable current trial parameters
+
+### 5. Technical Features
+- Non-centered parameterization for improved MCMC convergence
+- Adaptive HMC with customizable adapt_delta and max_treedepth
+- Parallel processing support (automatic CPU core detection)
+- Comprehensive error handling
+- Real-time diagnostics monitoring
+- **Flexible prior specification system**
+
+## Installation
+
+### Prerequisites
+
+Install required R packages:
+
+```r
+install.packages(c(
+  "shiny",
+  "shinythemes",
+  "tidyverse",
+  "rstan",
+  "bayesplot",
+  "DT",
+  "gridExtra"
+))
+```
+
+### rstan Installation
+
+For detailed rstan installation instructions, visit: https://github.com/stan-dev/rstan/wiki/RStan-Getting-Started
+
+## Usage
+
+### Running the Application
+
+1. **From R/RStudio:**
+```r
+library(shiny)
+runApp("app.R")
+```
+
+2. **From command line:**
+```bash
+R -e "shiny::runApp('app.R')"
+```
+
+### Application Workflow
+
+1. **Review Model Description**: Start with the "Model Description" tab to understand the statistical framework
+
+2. **View Historical Data**: Check the "Data" tab to see the 10 historical immunotherapy trials
+
+3. **Configure Parameters**: Navigate to "Run Model" and set:
+   - MCMC iterations (default: 4000)
+   - Number of chains (default: 4)
+   - Current trial interim OS log(HR) and SE
+   - Current trial interim PFS log(HR) and SE
+   - Target log(HR) for success
+
+4. **Execute Model**: Click "Run Stan Model" to perform Bayesian analysis
+
+5. **Review Results**: Navigate to "Results" tab to see:
+   - Posterior distributions
+   - PoS assessment
+   - Population parameters
+   - MCMC diagnostics
+
+## Model Details
+
+### Statistical Framework
+
+The application implements a hierarchical Bayesian model:
+
+**Data level:**
+- y_{k,j} ~ N(θ_{k,j}, W_{k,j})
+
+**Population level:**
+- θ_k ~ N(μ, Σ)
+
+**Default Priors (Customizable):**
+- μ_OS ~ N(-0.35, 1.0) - **adjustable mean and SD**
+- μ_PFS ~ N(-0.45, 1.0) - **adjustable mean and SD**
+- τ_OS ~ Exp(2) or Half-Normal(0, σ) - **choice of distribution**
+- τ_PFS ~ Exp(2) or Half-Normal(0, σ) - **choice of distribution**
+- ρ ~ Uniform(-0.95, 0.95) or LKJ(η) - **choice of distribution**
+
+**Non-centered parameterization:**
+- θ_k = μ + L_Σ * z_k, where z_k ~ N(0, I)
+
+### Probability of Success
+
+PoS is calculated as:
+```
+PoS = P(θ_OS,current < target | data)
+```
+
+**Interpretation:**
+- PoS ≥ 0.90: ★★★ VERY HIGH - Trial very likely to succeed
+- PoS ≥ 0.70: ★★ HIGH - Trial likely to succeed
+- PoS ≥ 0.50: ★ MODERATE - Trial may succeed
+- PoS < 0.50: ✗ LOW - Trial unlikely to succeed
+
+## Default Data
+
+The application uses simulated data from **27 historical immunotherapy trials** covering:
+- Melanoma
+- Non-Small Cell Lung Cancer (NSCLC)
+- Renal Cell Carcinoma
+- Hepatocellular Carcinoma (HCC)
+- **Bladder Cancer**
+- **Gastric Cancer**
+
+Default current trial parameters represent an NSCLC trial with:
+- Interim PFS log(HR): -0.48 (SE: 0.12)
+- Interim OS log(HR): -0.35 (SE: 0.25)
+- Target OS log(HR): -0.30
+
+## Technical Notes
+
+- **Computing Time**: Model execution typically takes 2-5 minutes depending on MCMC settings and available CPU cores
+- **Parallel Processing**: The app automatically detects and uses available CPU cores for parallel chain execution
+- **Convergence Diagnostics**: R-hat values should be < 1.01 for adequate convergence
+- **Effective Sample Size**: ESS should be > 100 per chain for reliable inference
+- **MCMC Controls**: adapt_delta and max_treedepth are now user-adjustable for fine-tuning convergence
+
+## Understanding Between-Trial Correlation
+
+**Important Statistical Concepts:**
+
+The model estimates a **between-trial correlation (ρ)** parameter that measures how trial-level effects correlate across endpoints. This is different from within-trial correlation!
+
+### Quick Reference:
+
+🎯 **[HOW_RHO_IS_ESTIMATED.md](HOW_RHO_IS_ESTIMATED.md)** - **NEW! How is ρ estimated?**
+- How ρ is learned from historical trial data structure alone
+- Why current trial is NOT needed to estimate ρ
+- Worked numerical examples showing the estimation process
+- Mathematical intuition and validation
+- **Essential reading for understanding the estimation mechanism**
+
+🔍 **[FAQ_CORRELATION.md](FAQ_CORRELATION.md)** - Frequently Asked Questions:
+- **Q0: How is ρ estimated from historical trials?** (NEW!)
+- Why is my estimated ρ so low?
+- What information can I still borrow with low ρ?
+- How much does ρ matter for PoS?
+- When to expect high vs low ρ?
+- Should I change my prior on ρ?
+- **Quick decision framework and practical guidelines**
+
+### Detailed Guides:
+
+📖 **[UNDERSTANDING_CORRELATION.md](UNDERSTANDING_CORRELATION.md)** - Comprehensive guide covering:
+- What is between-trial correlation and why might it be low?
+- What information can be borrowed from historical data even with low ρ?
+- How the hierarchical model works regardless of correlation
+- Practical examples and scenarios
+
+🎨 **[VISUAL_GUIDE_CORRELATION.md](VISUAL_GUIDE_CORRELATION.md)** - Visual explanations including:
+- Diagrams showing two types of correlation (within-trial vs between-trial)
+- Information flow charts for different ρ values
+- Numerical examples comparing high vs low correlation scenarios
+- Decision trees for interpreting results
+
+### Quick Summary:
+
+Even with **low between-trial correlation (ρ ≈ 0.1-0.3)**, historical data provides substantial value:
+
+✅ **Always Borrowed** (regardless of ρ):
+- Population mean effects (μ_OS, μ_PFS)
+- Between-trial heterogeneity (τ_OS, τ_PFS)
+- Hierarchical shrinkage (prevents overfitting)
+- Proper uncertainty quantification
+
+✅ **Conditionally Borrowed** (only when ρ > 0):
+- Cross-endpoint information (PFS → OS predictions)
+- Strength proportional to ρ value
+
+**Bottom line:** Low ρ doesn't mean historical data is useless - it just means we can't leverage PFS to predict OS. The model still provides robust statistical framework through population-level information and hierarchical structure.
+
+**Real-world impact:** Even with ρ = 0, hierarchical model can boost PoS by 15+ percentage points compared to analyzing current trial alone!
+
+## Troubleshooting
+
+### 🔧 Seeing ρ ≈ 0.14 Instead of Expected ρ ≈ 0.60?
+
+**If you're getting low ρ estimates (0.1-0.2) when you expect ~0.6:**
+
+📋 **[ANSWER_WHY_STILL_014.md](ANSWER_WHY_STILL_014.md)** - START HERE
+- 30-second quick fix
+- Why this happens
+- Step-by-step verification
+- Expected vs. actual values
+
+🔍 **[TROUBLESHOOTING_RHO.md](TROUBLESHOOTING_RHO.md)** - Comprehensive Guide
+- Complete troubleshooting checklist
+- Diagnostic steps
+- Common issues and solutions
+
+🧪 **test_data_generation.R** - Verification Script
+- Run to verify data generation works correctly
+- Expected output: correlation ≈ 0.60
+
+**Quick Fix (Most Common Cause - Browser Cache):**
+```r
+# 1. Stop Shiny app
+# 2. Restart R (Session → Restart R)
+# 3. Clear browser cache (Ctrl+Shift+Delete)
+# 4. Re-run app
+shiny::runApp("app.R")
+# 5. Check Data tab - should show "Between-trial cor: 0.619"
+```
+
+### Common Issues
+
+1. **Model compilation errors**: Ensure rstan is properly installed and configured
+2. **Divergent transitions**: Adjust adapt_delta (increase toward 0.999) if warnings appear
+3. **Low ESS**: Increase number of iterations if ESS warnings appear
+4. **Memory issues**: Reduce number of iterations or chains if memory is limited
+5. **Low ρ estimates**: See troubleshooting guides above (likely browser cache issue)
+
+### Performance Tips
+
+- Use parallel processing by ensuring multiple cores are available
+- Start with default settings (4000 iterations, 4 chains) for balance between speed and reliability
+- Monitor R-hat and ESS values in diagnostics output
+
+## File Structure
+
+```
+POS-simulation/
+├── app.R                              # Main Shiny application
+├── README.md                          # This file
+├── bayesian_pos_fixed current rho     # Original R script (reference)
+│                                      # Note: filename contains spaces
+└── [other project files]
+```
+
+## Citation
+
+If you use this application in your research, please cite the original methodology and this implementation.
+
+## License
+
+[Add appropriate license information]
+
+## Contact
+
+[Add contact information for questions/issues]
+
+## Changelog
+
+### Version 1.0.0 (2026-02-12)
+- Initial release
+- Complete Shiny interface implementation
+- All five main panels operational
+- Non-centered parameterization for improved convergence
+- Real-time diagnostics and visualization
+
+---
+
+## 🚀 Ready for shinyapps.io Deployment
+
+The app has been restructured into three files following Shiny deployment best practices:
+
+- **`global.R`** - Shared code (libraries, helper functions, defaults)
+- **`ui.R`** - User interface definition
+- **`server.R`** - Server logic and reactive programming
+
+### Quick Deployment
+
+```r
+library(rsconnect)
+setwd("/path/to/POS-simulation")
+
+rsconnect::deployApp(
+  appFiles = c("global.R", "ui.R", "server.R"),
+  appName = "bayesian-pos-simulation"
+)
+```
+
+**See [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) for complete deployment instructions.**
+

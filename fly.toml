@@ -1,0 +1,50 @@
+# =============================================================================
+# fly.toml - Fly.io Configuration for Bayesian PoS Simulation
+# =============================================================================
+# This configuration sets up the app for Fly.io deployment
+# - Single VM with 1 vCPU and 1GB RAM
+# - Health checks and auto-restart
+# - Environment variables for Stan single-core mode
+# =============================================================================
+
+app = "bayesian-pos-simulation"
+primary_region = "iad"  # Change to your preferred region
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  # Critical for Fly.io: Force single-core Stan execution
+  STAN_NUM_THREADS = "1"
+  OMP_NUM_THREADS = "1"
+  R_MAX_NUM_DLLS = "200"
+
+[http_service]
+  internal_port = 3838
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]
+
+  [http_service.concurrency]
+    type = "connections"
+    soft_limit = 25
+    hard_limit = 50
+
+  [[http_service.checks]]
+    grace_period = "30s"
+    interval = "15s"
+    method = "GET"
+    timeout = "10s"
+    path = "/"
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
+  memory_mb = 1024  # 1GB RAM
+
+[[mounts]]
+  source = "data"
+  destination = "/data"
+  # Optional: persistent storage for caching (not used by default)
